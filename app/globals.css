@@ -1,12 +1,33 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Custom Colors from code.html */
+  --primary: #3b19e6;
+  --background-light: #f6f6f8;
+  --background-dark: #141121;
+  --surface-dark: #1e1b2e;
+  --surface-light: #ffffff;
+  
+  /* Mapping to semantic names */
+  --app-bg: var(--background-light);
+  --app-surface: var(--surface-light);
+  --app-text: #0f172a; /* slate-900 */
+  --app-text-muted: #64748b; /* slate-500 */
+  --app-border: #e2e8f0; /* slate-200 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    
+    /* Dark mode mappings */
+    --app-bg: var(--background-dark);
+    --app-surface: var(--surface-dark);
+    --app-text: #ffffff;
+    --app-text-muted: #94a3b8; /* slate-400 */
+    --app-border: #1e293b; /* slate-800 */
   }
 }
 
@@ -17,9 +38,9 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--app-text);
+  background: var(--app-bg);
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -35,8 +56,18 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Material Symbols Outlined のスタイル調整 */
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
 }

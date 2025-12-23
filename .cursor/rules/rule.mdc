@@ -1,0 +1,14 @@
+---
+description: CSS coding standards and rules for the project
+globs: ["**/*.css", "**/*.module.css", "**/*.tsx", "**/*.jsx"]
+alwaysApply: true
+---
+
+# CSS Rules
+
+以下のCSSコーディング規約を遵守してください：
+
+- **CSSファイルの利用**: スタイルは全てCSSファイル（.css, .module.css）に記述してください。インラインスタイルは避けてください。
+- **命名規則**: クラス名にはキャメル記法（camelCase）を使用してください（例: `myClassName`）。
+- **ネスト記法**: CSSは可読性を高めるためネスト記法を使用して記述してください。
+- **アンパサンド（&）の使用制限**: `&` は擬似要素（`::before`, `::after`）や擬似クラス（`:hover`, `:focus`）の参照にのみ使用してください。クラス名の結合（例: `&__element`）には使用しないでください。
