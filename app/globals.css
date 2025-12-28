@@ -15,6 +15,11 @@
   --app-text: #0f172a; /* slate-900 */
   --app-text-muted: #64748b; /* slate-500 */
   --app-border: #e2e8f0; /* slate-200 */
+
+  /* Scrollbar colors */
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +33,11 @@
     --app-text: #ffffff;
     --app-text-muted: #94a3b8; /* slate-400 */
     --app-border: #1e293b; /* slate-800 */
+
+    /* Scrollbar colors dark */
+    --scrollbar-track: #141121;
+    --scrollbar-thumb: #3c3465;
+    --scrollbar-thumb-hover: #4f46e5;
   }
 }
 
@@ -70,4 +80,20 @@ button {
   'wght' 400,
   'GRAD' 0,
   'opsz' 24;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
