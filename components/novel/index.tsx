@@ -138,7 +138,7 @@ export default function Novel({ novel, stats }: NovelProps) {
             </Link>
 
             {/* Characters */}
-            <a href="#" className={styles.card}>
+            <Link href={`/novel/${novel.id}/characters`} className={styles.card}>
               <div>
                 <div className={`${styles.cardIconWrapper} ${styles.iconPurple}`}>
                   <span className="material-symbols-outlined" style={{fontSize: '30px'}}>groups</span>
@@ -149,7 +149,7 @@ export default function Novel({ novel, stats }: NovelProps) {
               <div className={styles.cardFooter}>
                 <span className={`material-symbols-outlined ${styles.arrowIcon}`}>arrow_forward</span>
               </div>
-            </a>
+            </Link>
 
             {/* Relationships */}
             <a href="#" className={styles.card}>
