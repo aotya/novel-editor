@@ -7,49 +7,103 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from 'next/link';
 import styles from './edit.module.css';
+import { createClient } from '@/lib/supabase/client';
+import { 
+  updateChapterContent, 
+  updateChapterTitle, 
+  createChapter, 
+  deleteChapter,
+  deleteAct,
+  renameAct,
+  createAct
+} from '@/app/novel/[slug]/edit/actions';
 
-// Mock Data for Chapters
-const CHAPTERS = [
-  {
-    id: 1,
-    title: "Chapter 1: Waking Up",
-    content: `
-      <p>The sterile hum of the cryo-chamber was the first thing to greet his ears. It wasn't the silence of space he had expected, but a low, throbbing vibration that seemed to emanate from the very walls of the ship. He blinked, his eyelashes stiff with frost, trying to make sense of the blurry shapes hovering above him.</p>
-      <p>"Vital signs stabilizing," a mechanical voice intoned, devoid of any warmth. "Subject 7-Alpha, welcome back to the waking world."</p>
-      <p>He tried to speak, but his throat felt like it was lined with sandpaper. A coughing fit seized him, racking his emaciated frame against the cold metal of the pod. A tube retracted from his arm with a hiss, leaving a pinprick of blood that floated momentarily in the micro-gravity before being sucked into a ventilation duct.</p>
-      <p>"Where..." he managed to rasp, the word barely a whisper. "Where is the crew?"</p>
-      <p>The mechanical voice paused, the silence stretching longer than the hum of the engine. "You are the crew, Subject 7-Alpha. The others... expired during transit."</p>
-      <p>He closed his eyes, the weight of the revelation settling on his chest heavier than the artificial gravity slowly spinning up. Expired. The word felt too clinical for death. Too neat. He pushed himself up, his muscles screaming in protest after decades of atrophy. He needed to see the bridge. He needed to see the stars.</p>
-    `,
-    words: 1204
-  },
-  {
-    id: 2,
-    title: "Chapter 2: The Briefing",
-    content: `
-      <p>The briefing room was cold, illuminated only by the holographic projector in the center. Dust motes danced in the blue light, swirling around the image of a planet that shouldn't exist.</p>
-      <p>"This is Kepler-186f," the Commander said, her voice echoing in the empty room. "Or at least, what's left of it."</p>
-      <p>He stared at the jagged cracks running across the planet's surface. It looked like a broken marble.</p>
-    `,
-    words: 850
-  },
-  {
-    id: 3,
-    title: "Chapter 3: Launch",
-    content: `
-      <p>The engines roared to life, a deafening sound that vibrated through his very bones. The g-force pressed him into the seat, stealing his breath.</p>
-      <p>"Ignition sequence start," the countdown began. "3... 2... 1..."</p>
-      <p>And then, they were weightless. The blue sky faded into the black abyss of space.</p>
-    `,
-    words: 920
-  }
-];
+type Chapter = {
+  id: string;
+  act_id: string;
+  novel_id: string;
+  title: string;
+  content: any; // JSON content
+  words_count: number;
+  status: string;
+  order_index: number;
+  updated_at: string;
+};
 
-export default function Edit() {
-  const [activeChapterId, setActiveChapterId] = useState(1);
+type Act = {
+  id: string;
+  novel_id: string;
+  title: string;
+  order_index: number;
+  created_at: string;
+  chapters: Chapter[];
+};
+
+type Novel = {
+  id: string;
+  title: string;
+  // ... other fields
+};
+
+type EditProps = {
+  novel: Novel;
+  initialActs: Act[];
+};
+
+export default function Edit({ novel, initialActs }: EditProps) {
+  const [acts, setActs] = useState<Act[]>(initialActs);
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [chapterTitle, setChapterTitle] = useState('');
+  const [currentWordsCount, setCurrentWordsCount] = useState(0);
   
-  const activeChapter = CHAPTERS.find(c => c.id === activeChapterId) || CHAPTERS[0];
+  // Find active chapter object
+  const activeChapter = React.useMemo(() => {
+    for (const act of acts) {
+      const found = act.chapters.find(c => c.id === activeChapterId);
+      if (found) return found;
+    }
+    return null;
+  }, [acts, activeChapterId]);
+
+  // Set initial active chapter if none selected and chapters exist
+  useEffect(() => {
+    if (!activeChapterId && acts.length > 0) {
+      // Find first chapter
+      for (const act of acts) {
+        if (act.chapters.length > 0) {
+          setActiveChapterId(act.chapters[0].id);
+          break;
+        }
+      }
+    }
+  }, [acts, activeChapterId]);
+
+  // Sync title input and word count with active chapter
+  useEffect(() => {
+    if (activeChapter) {
+        setChapterTitle(activeChapter.title);
+        setCurrentWordsCount(activeChapter.words_count || 0);
+    }
+  }, [activeChapter]);
+
+  // Handle beforeunload event to warn about unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveStatus === 'unsaved') {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saveStatus]);
 
   const editor = useEditor({
     extensions: [
@@ -59,11 +113,20 @@ export default function Edit() {
         types: ['heading', 'paragraph'],
       }),
     ],
-    content: activeChapter.content,
+    content: activeChapter?.content || '',
     editorProps: {
       attributes: {
         class: styles.editor,
       },
+    },
+    onUpdate: ({ editor }) => {
+       if (saveStatus !== 'unsaved') {
+          setSaveStatus('unsaved');
+       }
+       // Calculate word count excluding whitespace
+       const text = editor.getText();
+       const count = text.replace(/\s/g, '').length;
+       setCurrentWordsCount(count);
     },
     immediatelyRender: false,
   });
@@ -71,17 +134,196 @@ export default function Edit() {
   // Update editor content when active chapter changes
   useEffect(() => {
     if (editor && activeChapter) {
-      // Only update if content is different to avoid cursor jumping or loops
-      // Simple check here, for production better content comparison might be needed
-      if (editor.getHTML() !== activeChapter.content) {
-         editor.commands.setContent(activeChapter.content);
-      }
+      // Check if content is different to avoid cursor jumps
+      // Let's just set content for now when ID changes
+       editor.commands.setContent(activeChapter.content || '');
+       // Reset save status when switching chapters to avoid confusion
+       setSaveStatus('saved');
     }
-  }, [activeChapterId, editor, activeChapter]);
+  }, [activeChapterId, editor]); 
 
   if (!editor) {
     return null;
   }
+
+  // Helper to handle chapter selection with unsaved check
+  const handleChapterSelect = (chapterId: string) => {
+      if (chapterId === activeChapterId) return;
+
+      if (saveStatus === 'unsaved') {
+        const confirmSwitch = window.confirm('You have unsaved changes. Are you sure you want to switch chapters without saving?');
+        if (!confirmSwitch) return;
+      }
+      setActiveChapterId(chapterId);
+  };
+
+  const handleSave = async () => {
+    if (!activeChapter || !editor) return;
+
+    setSaveStatus('saving');
+    const content = editor.getJSON();
+    
+    // Calculate word count excluding whitespace for save
+    const text = editor.getText();
+    const count = text.replace(/\s/g, '').length;
+
+    // Parallel save: Content and Title
+    const promises = [];
+    
+    // Save content
+    promises.push(updateChapterContent(activeChapter.id, content, count));
+
+    // Save title if changed
+    if (chapterTitle !== activeChapter.title) {
+        promises.push(updateChapterTitle(activeChapter.id, novel.id, chapterTitle));
+    }
+
+    const results = await Promise.all(promises);
+    const hasError = results.some(r => r.error);
+
+    if (hasError) {
+        console.error('Error saving:', results);
+        setSaveStatus('unsaved'); // Or error state
+        alert('Failed to save changes.');
+    } else {
+        setSaveStatus('saved');
+        
+        // Update local state to reflect changes
+        setActs(prevActs => prevActs.map(act => ({
+            ...act,
+            chapters: act.chapters.map(ch => 
+                ch.id === activeChapter.id 
+                ? { ...ch, title: chapterTitle, content: content, words_count: count } 
+                : ch
+            )
+        })));
+    }
+  };
+
+  const handleCreateChapter = async () => {
+    if (saveStatus === 'unsaved') {
+      const confirmCreate = window.confirm('You have unsaved changes. Are you sure you want to create a new chapter without saving current one?');
+      if (!confirmCreate) return;
+    }
+
+    // Determine target act: current active chapter's act, or the first act
+    let targetActId = acts[0]?.id;
+    if (activeChapterId) {
+        const foundAct = acts.find(act => act.chapters.some(c => c.id === activeChapterId));
+        if (foundAct) targetActId = foundAct.id;
+    }
+
+    if (!targetActId) {
+        alert("No Act found to create a chapter in.");
+        return;
+    }
+
+    // Call server action
+    const result = await createChapter(novel.id, targetActId, 'New Chapter');
+
+    if (result.success && result.data) {
+        const newChapter = result.data;
+        
+        // Update local state
+        setActs(prevActs => prevActs.map(act => {
+            if (act.id === targetActId) {
+                return {
+                    ...act,
+                    chapters: [...act.chapters, newChapter]
+                };
+            }
+            return act;
+        }));
+
+        // Switch to the new chapter
+        setActiveChapterId(newChapter.id);
+        // Reset title input
+        setChapterTitle('New Chapter');
+    } else {
+        console.error('Failed to create chapter:', result.error);
+        alert('Failed to create new chapter.');
+    }
+  };
+
+  const handleDeleteChapter = async (chapterId: string, chapterTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${chapterTitle}"?`)) {
+      const result = await deleteChapter(chapterId, novel.id);
+      
+      if (result.success) {
+        setActs(prevActs => prevActs.map(act => ({
+          ...act,
+          chapters: act.chapters.filter(ch => ch.id !== chapterId)
+        })));
+
+        // If deleted chapter was active, switch to another one or clear selection
+        if (activeChapterId === chapterId) {
+          setActiveChapterId(null); // Or select another reasonable default
+          // Ideally we should try to select the previous or next chapter, or first available
+          // But for now, null is safe, user can select manually
+        }
+      } else {
+        console.error('Failed to delete chapter:', result.error);
+        alert('Failed to delete chapter.');
+      }
+    }
+  };
+
+  const handleDeleteAct = async (actId: string) => {
+    if (window.confirm('Are you sure you want to delete this Act? All chapters inside will also be deleted.')) {
+      const result = await deleteAct(actId, novel.id);
+      
+      if (result.success) {
+        // If active chapter was in this act, clear selection
+        const act = acts.find(a => a.id === actId);
+        if (act && act.chapters.some(ch => ch.id === activeChapterId)) {
+          setActiveChapterId(null);
+        }
+
+        setActs(prevActs => prevActs.filter(a => a.id !== actId));
+      } else {
+         console.error('Failed to delete act:', result.error);
+         alert('Failed to delete act.');
+      }
+    }
+  };
+
+  const handleRenameAct = async (actId: string, currentTitle: string) => {
+    const newTitle = window.prompt("Enter new Act title:", currentTitle);
+    if (newTitle && newTitle !== currentTitle) {
+      const result = await renameAct(actId, novel.id, newTitle);
+      
+      if (result.success) {
+        setActs(prevActs => prevActs.map(act => 
+          act.id === actId ? { ...act, title: newTitle } : act
+        ));
+      } else {
+         console.error('Failed to rename act:', result.error);
+         alert('Failed to rename act.');
+      }
+    }
+  };
+
+  const handleCreateAct = async () => {
+    const result = await createAct(novel.id, "New Act");
+    
+    if (result.success && result.data) {
+        const newAct = { ...result.data, chapters: [] };
+        setActs(prev => [...prev, newAct]);
+    } else {
+        console.error('Failed to create act:', result.error);
+        alert('Failed to create new act.');
+    }
+  };
+
+  // Helper for Link click interception
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+     if (saveStatus === 'unsaved') {
+        const confirmNav = window.confirm('You have unsaved changes. Are you sure you want to leave without saving?');
+        if (!confirmNav) {
+            e.preventDefault();
+        }
+     }
+  };
 
   return (
     <div className={styles.container}>
@@ -89,7 +331,7 @@ export default function Edit() {
       <aside className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarClosed : ''}`}>
         <div className={styles.sidebarHeader}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-            <h1 className={styles.projectTitle}>The Last Starship</h1>
+            <h1 className={styles.projectTitle}>{novel.title}</h1>
             <button 
               onClick={() => setIsSidebarOpen(false)}
               className={styles.iconButton}
@@ -98,7 +340,11 @@ export default function Edit() {
               <span className="material-symbols-outlined" style={{fontSize: '20px'}}>dock_to_left</span>
             </button>
           </div>
-          <Link href="/novel/the-last-starship" className={styles.backLink}>
+          <Link 
+            href={`/novel/${novel.id}`} 
+            className={styles.backLink}
+            onClick={(e) => handleLinkClick(e, `/novel/${novel.id}`)}
+          >
             <span className="material-symbols-outlined" style={{fontSize: '16px'}}>arrow_back</span>
             Back to Dashboard
           </Link>
@@ -106,7 +352,7 @@ export default function Edit() {
         
 
         <div className={styles.actionButtonsGrid}>
-          <button className={styles.actionButton}>
+          <button className={styles.actionButton} onClick={handleCreateAct}>
             <span className={`material-symbols-outlined ${styles.actionButtonIcon}`}>create_new_folder</span>
             <span>New Act</span>
           </button>
@@ -117,106 +363,75 @@ export default function Edit() {
         </div>
 
         <nav className={styles.navigation}>
-          {/* Act 1 */}
-          <div className={styles.actGroup}>
-            <div className={styles.actHeader}>
-              <div className={styles.actTitleWrapper}>
-                <span className={`material-symbols-outlined ${styles.actIcon}`}>folder_open</span>
-                <span className={styles.actTitle}>Act 1 - The Departure</span>
-              </div>
-              <div className={styles.itemActions}>
-                <button 
-                  className={`${styles.actionIcon} ${styles.actionIconEdit}`}
-                  title="Rename Act"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('Rename Act 1');
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span>
-                </button>
-                <button 
-                  className={styles.actionIcon}
-                  title="Delete Act"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm('Are you sure you want to delete this Act?')) {
-                      console.log('Delete Act 1');
-                    }
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
-                </button>
-              </div>
-            </div>
-            
-            {CHAPTERS.map(chapter => (
-              <div 
-                key={chapter.id}
-                onClick={() => setActiveChapterId(chapter.id)}
-                className={`${styles.chapterItem} ${activeChapterId === chapter.id ? styles.chapterItemActive : ''}`}
-                role="button"
-                tabIndex={0}
-              >
-                <div className={styles.chapterContentWrapper}>
-                  <span className={`material-symbols-outlined ${styles.chapterIcon}`}>article</span>
-                  <span className={styles.chapterTitle}>{chapter.title}</span>
+          {acts.map(act => (
+            <div key={act.id} className={styles.actGroup}>
+              <div className={styles.actHeader}>
+                <div className={styles.actTitleWrapper}>
+                  <span className={`material-symbols-outlined ${styles.actIcon}`}>folder_open</span>
+                  <span className={styles.actTitle}>{act.title}</span>
                 </div>
                 <div className={styles.itemActions}>
                   <button 
-                    className={styles.actionIcon}
-                    title="Delete Chapter"
+                    className={`${styles.actionIcon} ${styles.actionIconEdit}`}
+                    title="Rename Act"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Are you sure you want to delete "${chapter.title}"?`)) {
-                        console.log(`Delete Chapter ${chapter.id}`);
-                      }
+                      handleRenameAct(act.id, act.title);
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span>
+                  </button>
+                  <button 
+                    className={styles.actionIcon}
+                    title="Delete Act"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAct(act.id);
                     }}
                   >
                     <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Act 2 */}
-          <div className={styles.actGroup} style={{paddingTop: '0.5rem'}}>
-            <div className={styles.actHeader}>
-              <div className={styles.actTitleWrapper}>
-                <span className={`material-symbols-outlined ${styles.actIcon}`}>folder</span>
-                <span className={styles.actTitle}>Act 2 - The Void</span>
-              </div>
-              <div className={styles.itemActions}>
-                <button 
-                  className={`${styles.actionIcon} ${styles.actionIconEdit}`}
-                  title="Rename Act"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('Rename Act 2');
-                  }}
+              
+              {act.chapters.map(chapter => (
+                <div 
+                  key={chapter.id}
+                  onClick={() => handleChapterSelect(chapter.id)}
+                  className={`${styles.chapterItem} ${activeChapterId === chapter.id ? styles.chapterItemActive : ''}`}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span>
-                </button>
-                <button 
-                  className={styles.actionIcon}
-                  title="Delete Act"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm('Are you sure you want to delete this Act?')) {
-                      console.log('Delete Act 2');
-                    }
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
-                </button>
-              </div>
+                  <div className={styles.chapterContentWrapper}>
+                    <span className={`material-symbols-outlined ${styles.chapterIcon}`}>article</span>
+                    <span className={styles.chapterTitle}>{chapter.title}</span>
+                  </div>
+                  <div className={styles.itemActions}>
+                    <button 
+                      className={styles.actionIcon}
+                      title="Delete Chapter"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChapter(chapter.id, chapter.title);
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ))}
+          
+          {acts.length === 0 && (
+             <div style={{padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem'}}>
+               No acts yet. Create one to start writing!
+             </div>
+          )}
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.newChapterButton}>
+          <button className={styles.newChapterButton} onClick={handleCreateChapter}>
             <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
             New Chapter
           </button>
@@ -289,16 +504,13 @@ export default function Edit() {
             <button 
               className={styles.toolButton} 
               title="Save"
-              onClick={() => {
-                // Mock save action
-                console.log('Saving content...');
-              }}
+              onClick={handleSave}
             >
               <span className="material-symbols-outlined" style={{fontSize: '20px'}}>save</span>
             </button>
             <span className={styles.saveStatus}>
-              <span className={styles.statusDot}></span>
-              Saved just now
+              <span className={styles.statusDot} style={{backgroundColor: saveStatus === 'unsaved' ? '#fbbf24' : '#34d399'}}></span>
+              {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
             </span>
             <div className={styles.metaDivider}></div>
             <button className={styles.toolButton} title="Settings">
@@ -313,28 +525,37 @@ export default function Edit() {
             className={styles.editorPaper} 
             onClick={() => editor.chain().focus().run()}
           >
-            <div className={styles.paperContent} onClick={(e) => e.stopPropagation()}>
-              <input 
-                className={styles.chapterTitleInput} 
-                placeholder="Chapter Title" 
-                type="text" 
-                value={activeChapter.title}
-                readOnly
-              />
-              
-              <div className={styles.chapterMeta}>
-                <span className={styles.metaItem}>
-                  <span className="material-symbols-outlined" style={{fontSize: '16px'}}>schedule</span>
-                  Draft
-                </span>
-                <span className={styles.metaItem}>
-                  <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
-                  {activeChapter.words} words
-                </span>
-              </div>
+            {activeChapter ? (
+              <div className={styles.paperContent} onClick={(e) => e.stopPropagation()}>
+                <input 
+                  className={styles.chapterTitleInput} 
+                  placeholder="Chapter Title" 
+                  type="text" 
+                  value={chapterTitle}
+                  onChange={(e) => {
+                      setChapterTitle(e.target.value);
+                      if (saveStatus !== 'unsaved') setSaveStatus('unsaved');
+                  }}
+                />
+                
+                <div className={styles.chapterMeta}>
+                  <span className={styles.metaItem}>
+                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>schedule</span>
+                    {activeChapter.status || 'Draft'}
+                  </span>
+                  <span className={styles.metaItem}>
+                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
+                    {currentWordsCount} characters
+                  </span>
+                </div>
 
-              <EditorContent editor={editor} />
-            </div>
+                <EditorContent editor={editor} />
+              </div>
+            ) : (
+               <div className={styles.paperContent} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999'}}>
+                  <p>Select a chapter to start editing</p>
+               </div>
+            )}
           </div>
         </div>
       </main>

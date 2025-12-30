@@ -2,7 +2,25 @@ import React from 'react';
 import Link from 'next/link';
 import styles from './novel.module.css';
 
-export default function Novel() {
+type NovelData = {
+  id: string;
+  title: string;
+  synopsis: string | null;
+  image_url: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type NovelProps = {
+  novel: NovelData;
+  stats: {
+    chapters: number;
+    characters: number;
+  };
+};
+
+export default function Novel({ novel, stats }: NovelProps) {
   return (
     <div className={styles.pageWrapper}>
       {/* Sidebar - Desktop Only */}
@@ -50,9 +68,9 @@ export default function Novel() {
                 Home
               </Link>
               <span className={styles.breadcrumbSeparator}>/</span>
-              <a href="#" className={styles.breadcrumbLink}>My Novels</a>
+              <Link href="/" className={styles.breadcrumbLink}>My Novels</Link>
               <span className={styles.breadcrumbSeparator}>/</span>
-              <span className={styles.breadcrumbCurrent}>The Last Alchemist</span>
+              <span className={styles.breadcrumbCurrent}>{novel.title}</span>
             </div>
           </div>
           
@@ -69,18 +87,29 @@ export default function Novel() {
               <div className={styles.bookInfo}>
                 <div 
                   className={styles.bookCover} 
-                  style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBWGkW8sOouOaEx3xIOWOka6zktO6brZRle__NNWqn7bqJjPtF8FY0tWX9cSK8-3Kb-jfBlZsavdFgn8hrF8_VysM04PESIDmqvTUpETYntug95rqSDTh0I3ifNJJMW-TlnKiLY1hzMG--mQMr1Q-BTp7_Ae438k5cUSi5aYy2OTGj2XDT7gwkUkTKmkYKtKM7LHzUyEfbn4XJUrSW9bswV24Q1oQZ2lGuJ_pMpUre9mm5OFNNfSSYu1YlzghIJfwpr6KYWelu5397o")'}}
-                ></div>
+                  style={{
+                    backgroundImage: novel.image_url ? `url("${novel.image_url}")` : undefined,
+                    backgroundColor: !novel.image_url ? '#e0e7ff' : undefined,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {!novel.image_url && (
+                    <span className="material-symbols-outlined" style={{fontSize: '48px', color: '#6366f1'}}>menu_book</span>
+                  )}
+                </div>
                 <div className={styles.bookDetails}>
-                  <h2 className={styles.bookTitle}>The Last Alchemist</h2>
+                  <h2 className={styles.bookTitle}>{novel.title}</h2>
                   <div className={styles.tags}>
-                    <span className={styles.tag}>Fantasy</span>
+                    {/* Placeholder tags - could be dynamic later */}
+                    <span className={styles.tag}>Novel</span>
                     <span>•</span>
-                    <span>Young Adult</span>
-                    <span>•</span>
-                    <span>Draft 1</span>
+                    <span style={{textTransform: 'capitalize'}}>{novel.status}</span>
                   </div>
-                  <p className={styles.description}>In a world where magic has faded to myth, a young apprentice discovers the last remaining transmutation circle hidden beneath the royal archives.</p>
+                  <p className={styles.description}>
+                    {novel.synopsis || "No synopsis available. Click 'Edit Details' to add one."}
+                  </p>
                 </div>
               </div>
               <button className={styles.editButton}>
@@ -93,14 +122,14 @@ export default function Novel() {
           {/* Grid Links */}
           <div className={styles.grid}>
             {/* Episodes */}
-            <Link href="/novel/the-last-starship/edit" style={{display: 'contents'}}>
+            <Link href={`/novel/${novel.id}/edit`} style={{display: 'contents'}}>
               <div className={styles.card}>
                 <div>
                   <div className={`${styles.cardIconWrapper} ${styles.iconBlue}`}>
                     <span className="material-symbols-outlined" style={{fontSize: '30px'}}>menu_book</span>
                   </div>
                   <h3 className={styles.cardTitle}>Episodes</h3>
-                  <p className={styles.cardSubtitle}>Manage 12 chapters and scenes</p>
+                  <p className={styles.cardSubtitle}>Manage {stats.chapters} chapters and scenes</p>
                 </div>
                 <div className={styles.cardFooter}>
                   <span className={`material-symbols-outlined ${styles.arrowIcon}`}>arrow_forward</span>
@@ -115,7 +144,7 @@ export default function Novel() {
                   <span className="material-symbols-outlined" style={{fontSize: '30px'}}>groups</span>
                 </div>
                 <h3 className={styles.cardTitle}>Characters</h3>
-                <p className={styles.cardSubtitle}>8 active profiles & bios</p>
+                <p className={styles.cardSubtitle}>{stats.characters} active profiles & bios</p>
               </div>
               <div className={styles.cardFooter}>
                 <span className={`material-symbols-outlined ${styles.arrowIcon}`}>arrow_forward</span>

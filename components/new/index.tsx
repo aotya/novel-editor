@@ -1,8 +1,20 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { createNovel } from '@/app/new/actions';
 import styles from './new.module.css';
 
 export default function New() {
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleSubmit(formData: FormData) {
+    setIsPending(true);
+    await createNovel(formData);
+    // Note: If successful, it redirects, so we don't need to set isPending(false)
+    // But if there's an error handling added later without redirect, we might need it.
+  }
+
   return (
     <div className={styles.pageWrapper}>
       {/* Header */}
@@ -16,7 +28,6 @@ export default function New() {
           <h2 className={styles.logoText}>Novel Studio</h2>
         </div>
         
-        {/* Removed user info, community links, and notifications for personal use */}
       </header>
 
       {/* Main Content */}
@@ -35,15 +46,17 @@ export default function New() {
             <p className={styles.subtitle}>Start Your New Masterpiece. Fill in the details to get started.</p>
           </div>
 
-          <div className={styles.formSection}>
+          <form action={handleSubmit} className={styles.formSection}>
             <div className={styles.formGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Novel Title</span>
                 <input 
+                  name="title"
                   autoFocus 
                   className={styles.input} 
                   placeholder="The Name of the Wind..." 
                   type="text" 
+                  required
                 />
                 <span className={styles.helperText}>A catchy title can be changed later.</span>
               </label>
@@ -51,6 +64,7 @@ export default function New() {
               <label className={styles.label} style={{flexGrow: 1}}>
                 <span className={styles.labelText}>Synopsis / Overview</span>
                 <textarea 
+                  name="synopsis"
                   className={styles.textarea} 
                   placeholder="In a world where..."
                 ></textarea>
@@ -59,17 +73,17 @@ export default function New() {
 
               <div className={styles.footerActions}>
                 <Link href="/">
-                  <button className={styles.cancelButton}>
+                  <button type="button" className={styles.cancelButton}>
                     Cancel
                   </button>
                 </Link>
-                <button className={styles.createButton}>
+                <button type="submit" className={styles.createButton} disabled={isPending}>
                   <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
-                  Create Project
+                  {isPending ? 'Creating...' : 'Create Project'}
                 </button>
               </div>
             </div>
-          </div>
+          </form>
 
         </div>
       </main>
