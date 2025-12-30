@@ -158,3 +158,30 @@ export async function updateChapterTitle(chapterId: string, novelId: string, tit
     return { success: true }
 }
 
+export async function updateChapterOrder(novelId: string, updates: { id: string, order_index: number, act_id?: string }[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const promises = updates.map(update => {
+    const dataToUpdate: any = { order_index: update.order_index }
+    if (update.act_id) {
+        dataToUpdate.act_id = update.act_id
+    }
+    return supabase
+      .from('chapters')
+      .update(dataToUpdate)
+      .eq('id', update.id)
+  })
+
+  const results = await Promise.all(promises)
+  const hasError = results.some(r => r.error)
+
+  if (hasError) {
+    const errorMsg = results.find(r => r.error)?.error?.message
+    return { error: errorMsg || 'Failed to update order' }
+  }
+
+  revalidatePath(`/novel/${novelId}/edit`)
+  return { success: true }
+}

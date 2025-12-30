@@ -1,13 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from 'next/link';
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  useDroppable
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import styles from './edit.module.css';
 import { createClient } from '@/lib/supabase/client';
+import { ActItem } from './ActItem';
 import { 
   updateChapterContent, 
   updateChapterTitle, 
@@ -15,7 +33,8 @@ import {
   deleteChapter,
   deleteAct,
   renameAct,
-  createAct
+  createAct,
+  updateChapterOrder
 } from '@/app/novel/[slug]/edit/actions';
 
 type Chapter = {
@@ -57,6 +76,185 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [chapterTitle, setChapterTitle] = useState('');
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
+    const [isReordering, setIsReordering] = useState(false);
+  const [isAutoIndentEnabled, setIsAutoIndentEnabled] = useState(true);
+
+  const IndentOnEnter = Extension.create({
+    name: 'indentOnEnter',
+    addStorage() {
+        return {
+            enabled: true,
+        }
+    },
+    addKeyboardShortcuts() {
+      return {
+        Enter: () => {
+          if (this.storage.enabled) {
+              return this.editor.chain()
+                .splitBlock()
+                .insertContent('　')
+                .run();
+          }
+          return false; // Default behavior
+        },
+      }
+    },
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    
+    // Validate drag over
+    if (!over) return;
+    const activeId = active.id;
+    const overId = over.id;
+
+    if (activeId === overId) return;
+
+    // Find the acts containing these items
+    const findAct = (id: string) => {
+      // Check if id is an Act id
+      const actById = acts.find(a => a.id === id);
+      if (actById) return actById;
+      
+      // Check if id is a Chapter id
+      return acts.find(act => act.chapters.some(c => c.id === id));
+    };
+    
+    const activeAct = findAct(activeId as string);
+    const overAct = findAct(overId as string);
+
+    if (!activeAct || !overAct || activeAct === overAct) {
+      return;
+    }
+
+    // Moving between different acts
+    setActs((prev) => {
+      const activeActIndex = prev.findIndex(a => a.id === activeAct.id);
+      const overActIndex = prev.findIndex(a => a.id === overAct.id);
+      
+      if (activeActIndex === -1 || overActIndex === -1) return prev;
+
+      const activeActData = prev[activeActIndex];
+      const overActData = prev[overActIndex];
+      
+      // Find index of active chapter
+      const activeIndex = activeActData.chapters.findIndex(c => c.id === activeId);
+      
+      // Find index to insert into
+      let newIndex;
+      if (overActData.id === overId) {
+        // Dropped on the Act container itself -> add to end
+        newIndex = overActData.chapters.length + 1;
+      } else {
+        // Dropped over another chapter
+        const isBelowOverItem =
+          over &&
+          active.rect.current.translated &&
+          active.rect.current.translated.top >
+            over.rect.top + over.rect.height;
+
+        const modifier = isBelowOverItem ? 1 : 0;
+        newIndex = overActData.chapters.findIndex(c => c.id === overId) + modifier;
+      }
+
+      return prev.map((act) => {
+        if (act.id === activeActData.id) {
+          return {
+            ...act,
+            chapters: act.chapters.filter((c) => c.id !== activeId),
+          };
+        } else if (act.id === overActData.id) {
+          const newChapters = [
+            ...act.chapters.slice(0, newIndex),
+            activeActData.chapters[activeIndex],
+            ...act.chapters.slice(newIndex, act.chapters.length),
+          ];
+          return {
+            ...act,
+            chapters: newChapters,
+          };
+        }
+        return act;
+      });
+    });
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+    
+    // In handleDragEnd, the state has already been optimistically updated by handleDragOver
+    // for cross-act moves. We just need to find the new positions and persist.
+    // However, for same-act reordering, handleDragOver doesn't run or do anything usually
+    // (depending on implementation details, but sortable strategy handles intra-container sorts via transforms usually, 
+    // unless we manually handle it. With SortableContext, handleDragOver is mostly for inter-container).
+    // Actually, dnd-kit Sortable example handles intra-sort in DragOver too if configured, but typically 
+    // we use arrayMove in DragEnd for same container.
+    // Let's check the current state (acts) which might have been modified by DragOver.
+    
+    const activeId = active.id;
+    const overId = over.id;
+
+    // We need to re-locate where the items are in the *current* state (which might be modified by DragOver)
+    const findAct = (id: string) => {
+        const actById = acts.find(a => a.id === id);
+        if (actById) return actById;
+        return acts.find(act => act.chapters.some(c => c.id === id));
+    };
+
+    const activeAct = findAct(activeId as string);
+    const overAct = findAct(overId as string);
+
+    if (activeAct && overAct && activeAct.id === overAct.id) {
+        // Same container reordering (either it was same container from start, or moved into same by DragOver)
+        const actIndex = acts.findIndex(a => a.id === activeAct.id);
+        const oldIndex = activeAct.chapters.findIndex(c => c.id === activeId);
+        const newIndex = activeAct.chapters.findIndex(c => c.id === overId);
+
+        if (oldIndex !== newIndex) {
+            const newChapters = arrayMove(activeAct.chapters, oldIndex, newIndex);
+            
+            // Update local state
+            const newActs = [...acts];
+            newActs[actIndex] = { ...activeAct, chapters: newChapters };
+            setActs(newActs);
+
+            // Persist order
+             const updates = newChapters.map((chapter, index) => ({
+                id: chapter.id,
+                order_index: index,
+                act_id: activeAct.id // Ensure act_id is correct
+            }));
+            await updateChapterOrder(novel.id, updates);
+        } else {
+            // Even if index didn't change (e.g. dropped in place), 
+            // if it was a cross-act move (detected by DragOver logic changing state), we must persist.
+            // We can detect this if we track original state, but simpler to just persist if we know it *might* have changed acts.
+            // Or simpler: persist the whole Act's chapter list whenever DragEnd happens on it.
+            
+            // To be safe and handle the cross-act persistence:
+            // We should find which acts were involved. 
+            // Since we don't easily know "was this cross-act?" without extra state tracking, 
+            // and we rely on 'acts' being up-to-date from DragOver, 
+            // let's just persist the active Act's chapters order and act_id.
+             const updates = activeAct.chapters.map((chapter, index) => ({
+                id: chapter.id,
+                order_index: index,
+                act_id: activeAct.id
+            }));
+            await updateChapterOrder(novel.id, updates);
+        }
+    }
+  };
   
   // Find active chapter object
   const activeChapter = React.useMemo(() => {
@@ -112,6 +310,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      IndentOnEnter,
     ],
     content: activeChapter?.content || '',
     editorProps: {
@@ -131,6 +330,14 @@ export default function Edit({ novel, initialActs }: EditProps) {
     immediatelyRender: false,
   });
 
+  // Update storage when state changes
+  useEffect(() => {
+      if (editor) {
+          // @ts-ignore - Custom extension storage type not inferred
+          editor.storage.indentOnEnter.enabled = isAutoIndentEnabled;
+      }
+  }, [isAutoIndentEnabled, editor]);
+
   // Update editor content when active chapter changes
   useEffect(() => {
     if (editor && activeChapter) {
@@ -141,6 +348,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
        setSaveStatus('saved');
     }
   }, [activeChapterId, editor]); 
+ 
 
   if (!editor) {
     return null;
@@ -200,17 +408,26 @@ export default function Edit({ novel, initialActs }: EditProps) {
     }
   };
 
-  const handleCreateChapter = async () => {
+  const handleCreateChapter = async (preferredActId?: string) => {
     if (saveStatus === 'unsaved') {
       const confirmCreate = window.confirm('You have unsaved changes. Are you sure you want to create a new chapter without saving current one?');
       if (!confirmCreate) return;
     }
 
-    // Determine target act: current active chapter's act, or the first act
-    let targetActId = acts[0]?.id;
-    if (activeChapterId) {
-        const foundAct = acts.find(act => act.chapters.some(c => c.id === activeChapterId));
-        if (foundAct) targetActId = foundAct.id;
+    // Determine target act: 
+    // 1. preferredActId (from explicit click)
+    // 2. current active chapter's act
+    // 3. the first act
+    let targetActId = preferredActId;
+    
+    if (!targetActId) {
+        if (activeChapterId) {
+            const foundAct = acts.find(act => act.chapters.some(c => c.id === activeChapterId));
+            if (foundAct) targetActId = foundAct.id;
+        }
+        if (!targetActId) {
+            targetActId = acts[0]?.id;
+        }
     }
 
     if (!targetActId) {
@@ -325,6 +542,54 @@ export default function Edit({ novel, initialActs }: EditProps) {
      }
   };
 
+  const insertText = (text: string) => {
+      editor.chain().focus().insertContent(text).run();
+  };
+
+  const wrapSelection = (startChar: string, endChar: string) => {
+      if (editor.state.selection.empty) {
+          editor.chain().focus().insertContent(`${startChar}${endChar}`).setTextSelection(editor.state.selection.from + 1).run();
+      } else {
+          const { from, to } = editor.state.selection;
+          const text = editor.state.doc.textBetween(from, to);
+          editor.chain().focus().insertContentAt({ from, to }, `${startChar}${text}${endChar}`).run();
+      }
+  };
+
+  const insertRuby = () => {
+    if (editor.state.selection.empty) {
+        const cursor = editor.state.selection.from;
+        editor.chain().focus().insertContent('|《》').setTextSelection(cursor + 1).run();
+    } else {
+        const { from, to } = editor.state.selection;
+        const text = editor.state.doc.textBetween(from, to);
+        editor.chain().focus().insertContentAt({ from, to }, `|${text}《》`).setTextSelection(from + 1 + text.length + 1).run();
+    }
+  };
+
+  const autoIndent = () => {
+      const { state, dispatch } = editor.view;
+      const { doc, tr } = state;
+      
+      let changed = false;
+      doc.descendants((node, pos) => {
+        if (node.type.name === 'paragraph' && node.textContent.length > 0) {
+          const firstChar = node.textContent.charAt(0);
+          // Skip if starts with brackets or already has space
+          if (!['「', '『', '（', '　', ' '].includes(firstChar)) {
+             tr.insertText('　', pos + 1);
+             changed = true;
+          }
+        }
+      });
+      
+      if (changed) {
+          dispatch(tr);
+      } else {
+          alert('No indentation needed or already indented.');
+      }
+  };
+
   return (
     <div className={styles.container}>
       {/* Left Sidebar */}
@@ -356,72 +621,42 @@ export default function Edit({ novel, initialActs }: EditProps) {
             <span className={`material-symbols-outlined ${styles.actionButtonIcon}`}>create_new_folder</span>
             <span>New Act</span>
           </button>
-          <button className={styles.actionButton}>
-            <span className={`material-symbols-outlined ${styles.actionButtonIcon}`}>swap_vert</span>
-            <span>Reorder</span>
+          <button 
+            className={styles.actionButton} 
+            onClick={() => setIsReordering(!isReordering)}
+            style={isReordering ? { borderColor: 'var(--primary)', color: 'var(--primary)', backgroundColor: '#f3f4f6' } : {}}
+          >
+            <span 
+              className={`material-symbols-outlined ${styles.actionButtonIcon}`}
+              style={isReordering ? { color: 'var(--primary)' } : {}}
+            >
+              {isReordering ? 'check' : 'swap_vert'}
+            </span>
+            <span>{isReordering ? 'Done' : 'Reorder'}</span>
           </button>
         </div>
 
         <nav className={styles.navigation}>
-          {acts.map(act => (
-            <div key={act.id} className={styles.actGroup}>
-              <div className={styles.actHeader}>
-                <div className={styles.actTitleWrapper}>
-                  <span className={`material-symbols-outlined ${styles.actIcon}`}>folder_open</span>
-                  <span className={styles.actTitle}>{act.title}</span>
-                </div>
-                <div className={styles.itemActions}>
-                  <button 
-                    className={`${styles.actionIcon} ${styles.actionIconEdit}`}
-                    title="Rename Act"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRenameAct(act.id, act.title);
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span>
-                  </button>
-                  <button 
-                    className={styles.actionIcon}
-                    title="Delete Act"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteAct(act.id);
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
-                  </button>
-                </div>
-              </div>
-              
-              {act.chapters.map(chapter => (
-                <div 
-                  key={chapter.id}
-                  onClick={() => handleChapterSelect(chapter.id)}
-                  className={`${styles.chapterItem} ${activeChapterId === chapter.id ? styles.chapterItemActive : ''}`}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className={styles.chapterContentWrapper}>
-                    <span className={`material-symbols-outlined ${styles.chapterIcon}`}>article</span>
-                    <span className={styles.chapterTitle}>{chapter.title}</span>
-                  </div>
-                  <div className={styles.itemActions}>
-                    <button 
-                      className={styles.actionIcon}
-                      title="Delete Chapter"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteChapter(chapter.id, chapter.title);
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            {acts.map(act => (
+              <ActItem
+                key={act.id}
+                act={act}
+                activeChapterId={activeChapterId}
+                isReordering={isReordering}
+                onChapterSelect={handleChapterSelect}
+                onDeleteChapter={handleDeleteChapter}
+                onRenameAct={handleRenameAct}
+                onDeleteAct={handleDeleteAct}
+                onCreateChapter={handleCreateChapter}
+              />
+            ))}
+          </DndContext>
           
           {acts.length === 0 && (
              <div style={{padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem'}}>
@@ -431,7 +666,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.newChapterButton} onClick={handleCreateChapter}>
+          <button className={styles.newChapterButton} onClick={() => handleCreateChapter()}>
             <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
             New Chapter
           </button>
@@ -457,45 +692,49 @@ export default function Edit({ novel, initialActs }: EditProps) {
             
             <div className={styles.toolSection}>
               <button 
-                onClick={() => editor.chain().focus().toggleBold().run()}
-                className={`${styles.toolButton} ${editor.isActive('bold') ? styles.toolButtonActive : ''}`}
-                title="Bold"
+                onClick={() => insertText('……')}
+                className={styles.toolButton}
+                title="Insert Ellipsis"
               >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_bold</span>
+                <span style={{fontSize: '14px', fontWeight: 'bold'}}>……</span>
               </button>
               <button 
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-                className={`${styles.toolButton} ${editor.isActive('italic') ? styles.toolButtonActive : ''}`}
-                title="Italic"
+                onClick={() => insertText('――')}
+                className={styles.toolButton}
+                title="Insert Dash"
               >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_italic</span>
-              </button>
-              <button 
-                onClick={() => editor.chain().focus().toggleUnderline().run()}
-                className={`${styles.toolButton} ${editor.isActive('underline') ? styles.toolButtonActive : ''}`}
-                title="Underline"
-              >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_underlined</span>
+                 <span style={{fontSize: '14px', fontWeight: 'bold'}}>――</span>
               </button>
             </div>
-            
-            <div className={styles.toolSection}>
-              <button className={styles.toolSelect}>
-                Normal
-                <span className="material-symbols-outlined" style={{fontSize: '18px'}}>arrow_drop_down</span>
-              </button>
-            </div>
-            
+
             <div className={styles.toolSection}>
               <button 
-                onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                className={`${styles.toolButton} ${editor.isActive({ textAlign: 'left' }) ? styles.toolButtonActive : ''}`}
-                title="Align Left"
+                onClick={() => wrapSelection('「', '」')}
+                className={styles.toolButton}
+                title="Wrap in Brackets"
               >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_align_left</span>
+                <span style={{fontSize: '14px', fontWeight: 'bold'}}>「」</span>
               </button>
-              <button className={styles.toolButton} title="Comment">
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>comment</span>
+              <button 
+                 onClick={() => wrapSelection('(', ')')}
+                 className={styles.toolButton}
+                 title="Wrap in Parentheses"
+              >
+                 <span style={{fontSize: '14px', fontWeight: 'bold'}}>（）</span>
+              </button>
+              <button 
+                 onClick={insertRuby}
+                 className={styles.toolButton}
+                 title="Insert Ruby (|Text《...》)"
+              >
+                <span style={{fontSize: '12px', fontWeight: 'bold'}}>ルビ</span>
+              </button>
+              <button 
+                 onClick={() => setIsAutoIndentEnabled(!isAutoIndentEnabled)}
+                 className={`${styles.toolButton} ${isAutoIndentEnabled ? styles.toolButtonActive : ''}`}
+                 title={isAutoIndentEnabled ? "Auto Indent ON (Insert space on Enter)" : "Auto Indent OFF"}
+              >
+                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_indent_increase</span>
               </button>
             </div>
           </div>

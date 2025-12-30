@@ -404,7 +404,6 @@
 
 .paperContent {
   width: 100%;
-  max-width: 720px;
   display: flex;
   flex-direction: column;
   background-color: #ffffff;
@@ -464,12 +463,14 @@
   }
 
   :global(p) {
-    margin-bottom: 1.5rem;
+    font-size: 16px;
+    text-indent: 1em; /* Indent first line */
   }
   
   :global(h1), :global(h2), :global(h3) {
       font-weight: bold;
       margin-bottom: 1rem;
+      text-indent: 0; /* Reset indentation for headings */
   }
   
   :global(h1) { font-size: 1.8em; }
