@@ -1,0 +1,419 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  overflow: hidden;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* Header Styles */
+.header {
+  height: 64px;
+  background-color: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.logoGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(to bottom right, #5552ea, #4f46e5);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: box-shadow 0.2s;
+}
+
+.logoText {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.025em;
+  display: none;
+}
+@media (min-width: 1024px) {
+  .logoText { display: block; }
+}
+
+.divider {
+  height: 1.5rem;
+  width: 1px;
+  background-color: var(--app-border);
+  display: none;
+}
+@media (min-width: 640px) {
+  .divider { display: block; }
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.backButton {
+  padding: 0.5rem;
+  margin-left: -0.5rem;
+  color: var(--app-text-muted);
+  border-radius: 9999px;
+  transition: all 0.2s;
+}
+.backButton:hover {
+  color: var(--app-text);
+  background-color: var(--app-border); /* using border color as slight background */
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.novelTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+@media (min-width: 640px) {
+  .novelTitle { max-width: 320px; font-size: 1.125rem; }
+}
+
+.titleSeparator {
+  color: var(--app-text-muted);
+  opacity: 0.5;
+  font-size: 1.125rem;
+  font-weight: 300;
+}
+
+.pageLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--app-text-muted);
+}
+
+.pageLabelText {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .headerRight { gap: 1rem; }
+}
+
+.saveButton {
+  display: none;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+@media (min-width: 640px) {
+  .saveButton { display: flex; }
+}
+.saveButton:hover {
+  color: #5552ea;
+  background-color: rgba(85, 82, 234, 0.05);
+}
+
+.userAvatars {
+  display: none;
+  margin-right: 0.5rem;
+}
+@media (min-width: 1024px) {
+  .userAvatars { display: flex; }
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 2px solid var(--app-surface);
+  background-size: cover;
+  background-position: center;
+  margin-left: -0.5rem;
+}
+.avatar:first-child { margin-left: 0; }
+
+.addChapterButton {
+  background-color: #5552ea;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.addChapterButton:hover {
+  background-color: #433ec5;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+/* Main Content Styles */
+.main {
+  flex-grow: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1.5rem;
+  background-color: var(--app-bg);
+}
+
+.boardContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  height: 100%;
+  min-width: max-content;
+  padding-bottom: 0.5rem;
+}
+
+/* Column Styles */
+.column {
+  width: 20rem; /* 80 = 320px */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  background-color: var(--app-surface);
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.columnHeader {
+  padding: 0.75rem 1rem;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5); /* slate-200/50 */
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+/* Dark mode background for header would need adjustment based on theme */
+
+.columnTitleContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.columnTitle {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--app-text);
+}
+
+.moreButton {
+  color: var(--app-text-muted);
+  transition: color 0.2s;
+}
+.moreButton:hover {
+  color: var(--app-text);
+}
+
+.columnContent {
+  padding: 0.75rem;
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Custom Scrollbar for column content */
+.columnContent::-webkit-scrollbar {
+  width: 4px;
+}
+.columnContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+.columnContent::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--app-surface);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid var(--app-border);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  border-color: rgba(85, 82, 234, 0.4);
+}
+
+.editIconWrapper {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.card:hover .editIconWrapper {
+  opacity: 1;
+}
+
+.cardText {
+  font-size: 0.875rem;
+  color: var(--app-text);
+  line-height: 1.625;
+  font-weight: 500;
+}
+
+.cardFooter {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--app-border);
+}
+
+.foreshadowBadge {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.foreshadowText {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  line-height: 1.25;
+}
+
+/* Column Footer (Add Scene) */
+.columnFooter {
+  padding: 0.75rem;
+  flex-shrink: 0;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 0 0 0.75rem 0.75rem;
+  border-top: 1px solid var(--app-border);
+}
+
+.addSceneButton {
+  width: 100%;
+  padding: 0.5rem 0;
+  border: 1px dashed var(--app-border);
+  border-radius: 0.5rem;
+  color: var(--app-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.addSceneButton:hover {
+  background-color: var(--app-surface);
+  color: #5552ea;
+  border-color: rgba(85, 82, 234, 0.5);
+}
+
+/* Add Chapter Column */
+.addChapterColumn {
+  width: 20rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 0;
+}
+
+.addChapterCard {
+  width: 100%;
+  height: 300px;
+  border: 2px dashed var(--app-border);
+  border-radius: 0.75rem;
+  color: var(--app-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.2s;
+}
+.addChapterCard:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(85, 82, 234, 0.4);
+}
+
+.addChapterIconCircle {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: var(--app-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background-color 0.2s, color 0.2s;
+}
+.addChapterCard:hover .addChapterIconCircle {
+  transform: scale(1.1);
+  background-color: rgba(85, 82, 234, 0.1);
+  color: #5552ea;
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 8rem;
+  color: var(--app-text-muted);
+}
+.emptyStateIcon {
+  font-size: 1.875rem;
+  margin-bottom: 0.25rem;
+  opacity: 0.5;
+}
+.emptyStateText {
+  font-size: 0.75rem;
+}
+

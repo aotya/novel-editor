@@ -166,7 +166,7 @@ export default function Novel({ novel, stats }: NovelProps) {
             </Link>
 
             {/* Plot Outline */}
-            <a href="#" className={styles.card}>
+            <Link href={`/novel/${novel.id}/plot`} className={styles.card}>
               <div>
                 <div className={`${styles.cardIconWrapper} ${styles.iconAmber}`}>
                   <span className="material-symbols-outlined" style={{fontSize: '30px'}}>timeline</span>
@@ -177,7 +177,7 @@ export default function Novel({ novel, stats }: NovelProps) {
               <div className={styles.cardFooter}>
                 <span className={`material-symbols-outlined ${styles.arrowIcon}`}>arrow_forward</span>
               </div>
-            </a>
+            </Link>
           </div>
 
         </main>

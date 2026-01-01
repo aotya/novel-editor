@@ -89,6 +89,27 @@ create table relationships (
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
+-- 7. Plot Lists table (Columns in the Kanban board, e.g. "Chapter 1", "Chapter 2")
+create table plot_lists (
+  id uuid default uuid_generate_v4() primary key,
+  novel_id uuid references novels on delete cascade not null,
+  title text not null,
+  order_index integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 8. Plot Cards table (Cards within a list, e.g. "Scene A", "Scene B")
+create table plot_cards (
+  id uuid default uuid_generate_v4() primary key,
+  list_id uuid references plot_lists on delete cascade not null,
+  content text,
+  note text,
+  order_index integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
 -- Enable RLS (Row Level Security)
 alter table profiles enable row level security;
 alter table novels enable row level security;
@@ -96,6 +117,8 @@ alter table acts enable row level security;
 alter table chapters enable row level security;
 alter table characters enable row level security;
 alter table relationships enable row level security;
+alter table plot_lists enable row level security;
+alter table plot_cards enable row level security;
 
 -- Create Policies
 -- Profiles: Users can see/edit their own profile
@@ -162,6 +185,50 @@ create policy "Users can update relationships of own novels" on relationships fo
 );
 create policy "Users can delete relationships of own novels" on relationships for delete using (
   exists (select 1 from novels where novels.id = relationships.novel_id and novels.user_id = auth.uid())
+);
+
+-- Policies for plot_lists
+create policy "Users can view plot_lists of own novels" on plot_lists for select using (
+  exists (select 1 from novels where novels.id = plot_lists.novel_id and novels.user_id = auth.uid())
+);
+create policy "Users can insert plot_lists to own novels" on plot_lists for insert with check (
+  exists (select 1 from novels where novels.id = plot_lists.novel_id and novels.user_id = auth.uid())
+);
+create policy "Users can update plot_lists of own novels" on plot_lists for update using (
+  exists (select 1 from novels where novels.id = plot_lists.novel_id and novels.user_id = auth.uid())
+);
+create policy "Users can delete plot_lists of own novels" on plot_lists for delete using (
+  exists (select 1 from novels where novels.id = plot_lists.novel_id and novels.user_id = auth.uid())
+);
+
+-- Policies for plot_cards
+create policy "Users can view plot_cards of own novels" on plot_cards for select using (
+  exists (
+    select 1 from plot_lists 
+    join novels on novels.id = plot_lists.novel_id 
+    where plot_lists.id = plot_cards.list_id and novels.user_id = auth.uid()
+  )
+);
+create policy "Users can insert plot_cards to own novels" on plot_cards for insert with check (
+  exists (
+    select 1 from plot_lists 
+    join novels on novels.id = plot_lists.novel_id 
+    where plot_lists.id = plot_cards.list_id and novels.user_id = auth.uid()
+  )
+);
+create policy "Users can update plot_cards of own novels" on plot_cards for update using (
+  exists (
+    select 1 from plot_lists 
+    join novels on novels.id = plot_lists.novel_id 
+    where plot_lists.id = plot_cards.list_id and novels.user_id = auth.uid()
+  )
+);
+create policy "Users can delete plot_cards of own novels" on plot_cards for delete using (
+  exists (
+    select 1 from plot_lists 
+    join novels on novels.id = plot_lists.novel_id 
+    where plot_lists.id = plot_cards.list_id and novels.user_id = auth.uid()
+  )
 );
 
 -- Trigger to create profile on signup
