@@ -26,6 +26,7 @@ import {
 import styles from './edit.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { ActItem } from './ActItem';
+import { AiHighlight } from './extensions/AiHighlight';
 import { 
   updateChapterContent, 
   updateChapterTitle, 
@@ -34,8 +35,46 @@ import {
   deleteAct,
   renameAct,
   createAct,
-  updateChapterOrder
+  updateChapterOrder,
+  proofreadContent,
+  rewriteContent
 } from '@/app/novel/[slug]/edit/actions';
+
+type Suggestion = {
+  id: string;
+  type: 'typo' | 'grammar' | 'expression';
+  originalText: string;
+  suggestedText: string;
+  description: string;
+  label: string;
+};
+
+const mockSuggestions: Suggestion[] = [
+  {
+    id: '1',
+    type: 'typo',
+    label: '誤字脱字',
+    originalText: 'ふいんき',
+    suggestedText: '雰囲気（ふんいき）',
+    description: '「ふいんき」と入力されていますが、正しくは「ふんいき」です。',
+  },
+  {
+    id: '2',
+    type: 'grammar',
+    label: '文法',
+    originalText: '見れない',
+    suggestedText: '見られる',
+    description: 'ら抜き言葉になっています。',
+  },
+  {
+    id: '3',
+    type: 'expression',
+    label: '表現',
+    originalText: '激怒した',
+    suggestedText: '烈火のごとく怒った',
+    description: 'より情景が伝わる表現への言い換え提案です。',
+  },
+];
 
 type Chapter = {
   id: string;
@@ -76,8 +115,22 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [chapterTitle, setChapterTitle] = useState('');
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
-    const [isReordering, setIsReordering] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   const [isAutoIndentEnabled, setIsAutoIndentEnabled] = useState(true);
+  
+  // AI Mode State
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [aiActiveTab, setAiActiveTab] = useState<'proofread' | 'edit' | 'write'>('proofread');
+  const [hasProofreadRun, setHasProofreadRun] = useState(false);
+  
+  // Edit Mode State
+  const [editTargetRange, setEditTargetRange] = useState<'selection' | 'all'>('selection');
+  const [editInstruction, setEditInstruction] = useState('');
+  const [selectionLength, setSelectionLength] = useState(0);
+  const [editResult, setEditResult] = useState<{original: string, suggestion: string, reason: string} | null>(null);
+  const [isEditLoading, setIsEditLoading] = useState(false);
 
   const IndentOnEnter = Extension.create({
     name: 'indentOnEnter',
@@ -100,6 +153,14 @@ export default function Edit({ novel, initialActs }: EditProps) {
       }
     },
   });
+
+  const aiHighlightExtension = React.useMemo(() => {
+    return AiHighlight.configure({
+        HTMLAttributes: {
+            class: 'ai-highlight',
+        },
+    })
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -311,12 +372,26 @@ export default function Edit({ novel, initialActs }: EditProps) {
         types: ['heading', 'paragraph'],
       }),
       IndentOnEnter,
+      aiHighlightExtension,
     ],
     content: activeChapter?.content || '',
     editorProps: {
       attributes: {
         class: styles.editor,
       },
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        if (text) {
+          event.preventDefault();
+          view.dispatch(view.state.tr.insertText(text));
+          return true;
+        }
+        return false;
+      },
+    },
+    onSelectionUpdate: ({ editor }) => {
+        const { from, to } = editor.state.selection;
+        setSelectionLength(to - from);
     },
     onUpdate: ({ editor }) => {
        if (saveStatus !== 'unsaved') {
@@ -329,6 +404,288 @@ export default function Edit({ novel, initialActs }: EditProps) {
     },
     immediatelyRender: false,
   });
+
+  // AI Logic
+  const toggleAiMode = () => {
+    const newMode = !isAiMode;
+    setIsAiMode(newMode);
+    
+    // Reset state when closing, or initialize when opening
+    if (newMode) {
+       // Do not run proofreading automatically anymore
+       // Just ensure tab is set to default
+       setAiActiveTab('proofread');
+    } else {
+        handleCloseAiMode();
+    }
+  };
+
+  const runProofreading = async () => {
+    if (!editor) return;
+    
+    setIsAiLoading(true);
+    editor.commands.unsetAiHighlight();
+    setSuggestions([]);
+
+    try {
+        const content = editor.getText();
+        const result = await proofreadContent(content);
+
+        if (result.success && result.data && result.data.suggestions) {
+            const apiSuggestions = result.data.suggestions.map((item: any, index: number) => {
+                    let type: Suggestion['type'] = 'typo';
+                    let label = '誤字脱字';
+                    
+                    if (item.type === 'grammar') {
+                        type = 'grammar';
+                        label = '文法';
+                    } else if (item.type === 'style' || item.type === 'expression') {
+                        type = 'expression';
+                        label = '表現';
+                    }
+
+                    return {
+                        id: `ai-${index}-${Date.now()}`,
+                        type: type,
+                        label: label,
+                        originalText: item.original,
+                        suggestedText: item.suggestion,
+                        description: item.reason,
+                    };
+            });
+            
+            setSuggestions(apiSuggestions);
+            applyHighlights(apiSuggestions);
+            setHasProofreadRun(true);
+        } else {
+            console.error("Failed to fetch suggestions or empty response", result);
+            alert("AI添削の取得に失敗しました。");
+        }
+    } catch (e) {
+        console.error("Error in AI mode:", e);
+        alert("エラーが発生しました。");
+    } finally {
+        setIsAiLoading(false);
+    }
+  };
+
+  const applyHighlights = (items: Suggestion[]) => {
+      if (!editor) return;
+      
+      editor.state.doc.descendants((node, pos) => {
+        if (node.isText && node.text) {
+            items.forEach(suggestion => {
+                let searchPos = 0;
+                const text = node.text!;
+                while (searchPos < text.length) {
+                    const idx = text.indexOf(suggestion.originalText, searchPos);
+                    if (idx !== -1) {
+                        const from = pos + idx;
+                        const to = from + suggestion.originalText.length;
+                        editor.chain()
+                            .setTextSelection({ from, to })
+                            .setAiHighlight({ type: suggestion.type, id: suggestion.id })
+                            .run();
+                        searchPos = idx + 1;
+                    } else {
+                        break;
+                    }
+                }
+            });
+        }
+      });
+      editor.commands.setTextSelection(0);
+  };
+
+  const handleAcceptSuggestion = (suggestion: Suggestion) => {
+      if (!editor) return;
+      
+      let targetRange: { from: number; to: number } | null = null;
+      
+      // Find the range of the suggestion mark
+      editor.state.doc.descendants((node, pos) => {
+          if (targetRange) return false;
+          if (node.marks) {
+              const mark = node.marks.find(m => m.type.name === 'aiHighlight' && m.attrs.id === suggestion.id);
+              if (mark) {
+                  targetRange = { from: pos, to: pos + node.nodeSize };
+                  return false;
+              }
+          }
+      });
+
+      if (targetRange) {
+          editor.chain()
+              .focus()
+              .setTextSelection(targetRange)
+              .unsetAiHighlight() // Remove mark
+              .insertContent(suggestion.suggestedText) // Replace text
+              .run();
+      }
+      
+      setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+  };
+
+  const handleIgnoreSuggestion = (suggestion: Suggestion) => {
+      if (!editor) return;
+      
+      let targetRange: { from: number; to: number } | null = null;
+      
+      // Find the range of the suggestion mark
+      editor.state.doc.descendants((node, pos) => {
+          if (targetRange) return false;
+          if (node.marks) {
+              const mark = node.marks.find(m => m.type.name === 'aiHighlight' && m.attrs.id === suggestion.id);
+              if (mark) {
+                  targetRange = { from: pos, to: pos + node.nodeSize };
+                  return false;
+              }
+          }
+      });
+
+      if (targetRange) {
+          editor.chain()
+              .setTextSelection(targetRange)
+              .unsetAiHighlight()
+              .run();
+      }
+      
+      setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+  };
+
+  const handleAcceptAllSuggestions = () => {
+    if (!editor) return;
+
+    const replacements: { from: number; to: number; text: string; id: string }[] = [];
+
+    // 1. Collect all replacement targets from the document
+    editor.state.doc.descendants((node, pos) => {
+        if (node.marks) {
+            const marks = node.marks.filter(m => m.type.name === 'aiHighlight');
+            marks.forEach(mark => {
+                const suggestion = suggestions.find(s => s.id === mark.attrs.id);
+                if (suggestion) {
+                    replacements.push({
+                        from: pos,
+                        to: pos + node.nodeSize,
+                        text: suggestion.suggestedText,
+                        id: suggestion.id
+                    });
+                }
+            });
+        }
+    });
+    
+    // 2. Sort by position descending to avoid index shifting issues
+    replacements.sort((a, b) => b.from - a.from);
+
+    // 3. Apply replacements
+    if (replacements.length > 0) {
+        const chain = editor.chain().focus();
+        replacements.forEach(rep => {
+             chain.setTextSelection({ from: rep.from, to: rep.to })
+                  .unsetAiHighlight()
+                  .insertContent(rep.text);
+        });
+        chain.run();
+    }
+    
+    // 4. Clear suggestions
+    setSuggestions([]);
+  };
+
+  const handleCloseAiMode = () => {
+      setIsAiMode(false);
+      setSuggestions([]);
+      setHasProofreadRun(false);
+      
+      // Reset Edit Mode
+      setEditResult(null);
+      setEditInstruction('');
+      setEditTargetRange('selection');
+      
+      if (editor) {
+          editor.commands.unsetAiHighlight();
+      }
+  };
+
+  const handleGenerateEditSuggestion = async () => {
+    if (!editor) return;
+    
+    // Check if selection is required but empty
+    if (editTargetRange === 'selection' && selectionLength === 0) {
+        alert("テキストを選択してください。");
+        return;
+    }
+
+    if (!editInstruction.trim()) {
+        alert("指示内容を入力してください。");
+        return;
+    }
+
+    setIsEditLoading(true);
+
+    try {
+        let fullText = editor.getText();
+        let selectedText = "";
+        let selectionRange = null;
+
+        if (editTargetRange === 'selection') {
+            const { from, to } = editor.state.selection;
+            selectedText = editor.state.doc.textBetween(from, to);
+            selectionRange = { start: from, end: to };
+        } else {
+            selectedText = fullText;
+            selectionRange = { start: 0, end: fullText.length + 1 }; // Simple full range
+        }
+
+        const context = {
+            chapterTitle: activeChapter?.title || '',
+            characters: [], // TODO: Extract characters
+            mood: '' // TODO: Analyze mood
+        };
+
+        const result = await rewriteContent(fullText, selectedText, editInstruction, selectionRange, context);
+
+        if (result.success && result.data && result.data.result) {
+            setEditResult({
+                original: result.data.result.originalText || selectedText,
+                suggestion: result.data.result.rewrittenText,
+                reason: result.data.result.reason
+            });
+        } else {
+             console.error("Failed to generate edit:", result);
+             alert("生成に失敗しました。");
+        }
+
+    } catch (e) {
+        console.error("Error generating edit:", e);
+        alert("生成に失敗しました。");
+    } finally {
+        setIsEditLoading(false);
+    }
+  };
+
+  const handleApplyEdit = () => {
+      if (!editor || !editResult) return;
+
+      if (editTargetRange === 'selection') {
+          // Replace selection
+          const { from, to } = editor.state.selection;
+          editor.chain().focus().insertContentAt({ from, to }, editResult.suggestion).run();
+      } else {
+          // Replace all
+          editor.commands.setContent(editResult.suggestion);
+      }
+      
+      // Reset after apply
+      setEditResult(null);
+      setEditInstruction('');
+  };
+  
+  const handleEditQuickInstruction = (text: string) => {
+      setEditInstruction(text);
+  };
 
   // Update storage when state changes
   useEffect(() => {
@@ -736,6 +1093,17 @@ export default function Edit({ novel, initialActs }: EditProps) {
               >
                 <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_indent_increase</span>
               </button>
+              
+              <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 8px' }}></div>
+              
+              <button 
+                 onClick={toggleAiMode}
+                 className={`${styles.toolButton} ${isAiMode ? styles.toolButtonActive : ''}`}
+                 title="AI Correction Mode"
+              >
+                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>auto_awesome</span>
+                {isAiMode && <span style={{fontSize: '12px', fontWeight: 'bold', marginLeft: '4px'}}>ON</span>}
+              </button>
             </div>
           </div>
 
@@ -758,44 +1126,296 @@ export default function Edit({ novel, initialActs }: EditProps) {
           </div>
         </header>
 
-        {/* Editor Canvas */}
-        <div className={styles.editorContainer}>
-          <div 
-            className={styles.editorPaper} 
-            onClick={() => editor.chain().focus().run()}
-          >
-            {activeChapter ? (
-              <div className={styles.paperContent} onClick={(e) => e.stopPropagation()}>
-                <input 
-                  className={styles.chapterTitleInput} 
-                  placeholder="Chapter Title" 
-                  type="text" 
-                  value={chapterTitle}
-                  onChange={(e) => {
-                      setChapterTitle(e.target.value);
-                      if (saveStatus !== 'unsaved') setSaveStatus('unsaved');
-                  }}
-                />
-                
-                <div className={styles.chapterMeta}>
-                  <span className={styles.metaItem}>
-                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>schedule</span>
-                    {activeChapter.status || 'Draft'}
-                  </span>
-                  <span className={styles.metaItem}>
-                    <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
-                    {currentWordsCount} characters
-                  </span>
-                </div>
+        {/* Editor Canvas & AI Panel */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <div className={styles.editorContainer}>
+              <div 
+                className={styles.editorPaper} 
+                onClick={() => editor.chain().focus().run()}
+              >
+                {activeChapter ? (
+                  <div className={styles.paperContent} onClick={(e) => e.stopPropagation()}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                        <input 
+                          className={styles.chapterTitleInput} 
+                          placeholder="Chapter Title" 
+                          type="text" 
+                          value={chapterTitle}
+                          onChange={(e) => {
+                              setChapterTitle(e.target.value);
+                              if (saveStatus !== 'unsaved') setSaveStatus('unsaved');
+                          }}
+                        />
+                        {isAiMode && (
+                            <div className={styles.aiModeIndicator}>
+                                <span className="material-symbols-outlined" style={{fontSize: '18px'}}>auto_awesome</span>
+                                <span className={styles.aiModeText}>AI添削モード ON</span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className={styles.chapterMeta}>
+                      <span className={styles.metaItem}>
+                        <span className="material-symbols-outlined" style={{fontSize: '16px'}}>schedule</span>
+                        {activeChapter.status || 'Draft'}
+                      </span>
+                      <span className={styles.metaItem}>
+                        <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
+                        {currentWordsCount} characters
+                      </span>
+                    </div>
 
-                <EditorContent editor={editor} />
+                    <EditorContent editor={editor} />
+                  </div>
+                ) : (
+                   <div className={styles.paperContent} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999'}}>
+                      <p>Select a chapter to start editing</p>
+                   </div>
+                )}
               </div>
-            ) : (
-               <div className={styles.paperContent} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999'}}>
-                  <p>Select a chapter to start editing</p>
-               </div>
+            </div>
+
+            {/* AI Suggestion Panel */}
+            {isAiMode && (
+                <aside className={styles.suggestionPanel}>
+                    {/* Tabs */}
+                    <div className={styles.aiTabs}>
+                        <div 
+                            className={`${styles.aiTab} ${aiActiveTab === 'proofread' ? styles.aiTabActive : ''}`}
+                            onClick={() => setAiActiveTab('proofread')}
+                        >
+                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>search</span>
+                            校正
+                        </div>
+                        <div 
+                            className={`${styles.aiTab} ${aiActiveTab === 'edit' ? styles.aiTabActive : ''}`}
+                            onClick={() => setAiActiveTab('edit')}
+                        >
+                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>auto_fix</span>
+                            編集
+                        </div>
+                        <div 
+                            className={`${styles.aiTab} ${aiActiveTab === 'write' ? styles.aiTabActive : ''}`}
+                            onClick={() => setAiActiveTab('write')}
+                        >
+                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit_note</span>
+                            執筆
+                        </div>
+                    </div>
+
+                    <div className={styles.aiTabContent}>
+                        {aiActiveTab === 'proofread' && (
+                            <>
+                                {isAiLoading ? (
+                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem', color: '#64748b'}}>
+                                        <span className="material-symbols-outlined" style={{animation: 'spin 1s linear infinite', fontSize: '32px'}}>sync</span>
+                                        <span>AIが文章を分析中...</span>
+                                    </div>
+                                ) : !hasProofreadRun ? (
+                                    <div className={styles.emptyStateContainer}>
+                                        <span className={`material-symbols-outlined ${styles.emptyStateIcon}`}>find_in_page</span>
+                                        <div>
+                                            <p style={{fontWeight: 'bold', color: '#334155', marginBottom: '0.5rem'}}>AI校正を実行</p>
+                                            <p style={{fontSize: '0.9rem'}}>誤字脱字や文法ミス、表現の改善点を<br/>AIがチェックします。</p>
+                                        </div>
+                                        <button className={styles.startProofreadButton} onClick={runProofreading}>
+                                            <span className="material-symbols-outlined">play_arrow</span>
+                                            校正を開始する
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Summary Box */}
+                                        <div className={styles.summaryBox}>
+                                            <span className={`material-symbols-outlined ${styles.summaryIcon}`}>info</span>
+                                            <div className={styles.summaryContent}>
+                                                <span className={styles.summaryTitle}>{suggestions.length}件の指摘があります</span>
+                                                <span className={styles.summaryDesc}>誤字脱字・文法ミスをチェックしました。</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Suggestions List */}
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1}}>
+                                            {suggestions.map(suggestion => (
+                                                <div key={suggestion.id} className={styles.suggestionCard}>
+                                                    <div className={styles.suggestionHeader}>
+                                                        <span className={`${styles.suggestionBadge} ${
+                                                            suggestion.type === 'typo' ? styles.badgeTypo : 
+                                                            suggestion.type === 'grammar' ? styles.badgeGrammar : 
+                                                            styles.badgeExpression
+                                                        }`}>
+                                                            {suggestion.label}
+                                                        </span>
+                                                    </div>
+                                                    <div className={styles.suggestionContent}>
+                                                        <span className={styles.originalText}>{suggestion.originalText}</span>
+                                                        <span className="material-symbols-outlined" style={{fontSize: '14px', color: '#cbd5e1'}}>arrow_forward</span>
+                                                        <span className={styles.suggestedText}>{suggestion.suggestedText}</span>
+                                                    </div>
+                                                    <p className={styles.suggestionDescription}>{suggestion.description}</p>
+                                                    <div className={styles.suggestionActions}>
+                                                        <button className={styles.ignoreButton} onClick={() => handleIgnoreSuggestion(suggestion)}>無視</button>
+                                                        <button className={styles.acceptButton} onClick={() => handleAcceptSuggestion(suggestion)}>修正</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {suggestions.length === 0 && (
+                                                <div style={{textAlign: 'center', color: '#64748b', padding: '2rem'}}>
+                                                    <span className="material-symbols-outlined" style={{fontSize: '48px', color: '#cbd5e1', marginBottom: '1rem'}}>check_circle</span>
+                                                    <p>修正提案はありません。<br/>素晴らしい文章です！</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Actions Footer - Only show if suggestions exist */}
+                                        {suggestions.length > 0 && (
+                                            <button className={styles.fixAllButton} onClick={handleAcceptAllSuggestions}>
+                                                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>done_all</span>
+                                                すべて修正する
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </>
+                        )}
+                        
+                        {aiActiveTab === 'edit' && (
+                             <div className={styles.editTabContainer}>
+                                {isEditLoading ? (
+                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem', color: '#64748b'}}>
+                                        <span className="material-symbols-outlined" style={{animation: 'spin 1s linear infinite', fontSize: '32px'}}>auto_awesome</span>
+                                        <span>AIが修正案を作成中...</span>
+                                    </div>
+                                ) : !editResult ? (
+                                    <>
+                                        {/* Target Range Selector */}
+                                        <div>
+                                            <div className={styles.sectionLabel}>対象範囲</div>
+                                            <div className={styles.rangeSelector}>
+                                                <div 
+                                                    className={`${styles.rangeOption} ${editTargetRange === 'selection' ? styles.rangeOptionActive : ''}`}
+                                                    onClick={() => setEditTargetRange('selection')}
+                                                >
+                                                    選択範囲 ({selectionLength}文字)
+                                                </div>
+                                                <div 
+                                                    className={`${styles.rangeOption} ${editTargetRange === 'all' ? styles.rangeOptionActive : ''}`}
+                                                    onClick={() => setEditTargetRange('all')}
+                                                >
+                                                    全体
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Quick Instructions */}
+                                        <div>
+                                            <div className={styles.sectionLabel}>クイック指示</div>
+                                            <div className={styles.quickInstructionGrid}>
+                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("表現をリッチに")}>
+                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#8b5cf6'}}>auto_awesome</span>
+                                                    表現をリッチに
+                                                </button>
+                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("感情を強める")}>
+                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#ec4899'}}>favorite</span>
+                                                    感情を強める
+                                                </button>
+                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("簡潔にする")}>
+                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#10b981'}}>short_text</span>
+                                                    簡潔にする
+                                                </button>
+                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("緊迫感を出す")}>
+                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#f59e0b'}}>warning</span>
+                                                    緊迫感を出す
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Instruction Input */}
+                                        <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                                            <div className={styles.sectionLabel}>指示内容</div>
+                                            <textarea 
+                                                className={styles.instructionTextarea}
+                                                placeholder="例：○○という設定を踏まえて書き直して..."
+                                                value={editInstruction}
+                                                onChange={(e) => setEditInstruction(e.target.value)}
+                                            />
+                                        </div>
+
+                                        {/* Generate Button */}
+                                        <button 
+                                            className={`${styles.generateButton} ${(!editInstruction || (editTargetRange === 'selection' && selectionLength === 0)) ? styles.generateButtonDisabled : ''}`}
+                                            onClick={handleGenerateEditSuggestion}
+                                            disabled={!editInstruction || (editTargetRange === 'selection' && selectionLength === 0)}
+                                        >
+                                            <span className="material-symbols-outlined">auto_fix</span>
+                                            修正案を作成する
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Result View */}
+                                        <div className={styles.resultHeader}>
+                                            <button className={styles.backButton} onClick={() => setEditResult(null)}>
+                                                <span className="material-symbols-outlined">arrow_back</span>
+                                            </button>
+                                            <span>生成結果の確認</span>
+                                        </div>
+
+                                        <div className={styles.editResultCard}>
+                                            <div className={styles.editResultHeader}>
+                                                <span className="material-symbols-outlined">auto_awesome</span>
+                                                AIからの提案
+                                            </div>
+                                            
+                                            <div className={styles.diffSection}>
+                                                <span className={styles.diffLabel}>変更前:</span>
+                                                <div className={`${styles.diffContent} ${styles.diffContentOld}`}>
+                                                    {editResult.original.length > 100 ? editResult.original.substring(0, 100) + "..." : editResult.original}
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.diffSection}>
+                                                <span className={styles.diffLabel}>変更後:</span>
+                                                <div className={`${styles.diffContent} ${styles.diffContentNew}`}>
+                                                    {editResult.suggestion}
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.reasonBox}>
+                                                <div className={styles.reasonHeader}>
+                                                    <span className="material-symbols-outlined" style={{fontSize: '16px', color: '#fbbf24'}}>lightbulb</span>
+                                                    修正の意図
+                                                </div>
+                                                <p className={styles.reasonText}>
+                                                    {editResult.reason}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.resultFooter}>
+                                            <button className={styles.regenerateButton} onClick={handleGenerateEditSuggestion}>
+                                                <span className="material-symbols-outlined">refresh</span>
+                                                再生成
+                                            </button>
+                                            <button className={styles.applyButton} onClick={handleApplyEdit}>
+                                                <span className="material-symbols-outlined">check</span>
+                                                採用して反映
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                             </div>
+                        )}
+                        
+                        {aiActiveTab === 'write' && (
+                             <div className={styles.emptyStateContainer}>
+                                <span className={`material-symbols-outlined ${styles.emptyStateIcon}`}>edit_note</span>
+                                <p>執筆支援機能は準備中です</p>
+                             </div>
+                        )}
+                    </div>
+                </aside>
             )}
-          </div>
         </div>
       </main>
     </div>

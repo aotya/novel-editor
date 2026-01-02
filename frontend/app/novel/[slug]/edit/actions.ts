@@ -185,3 +185,69 @@ export async function updateChapterOrder(novelId: string, updates: { id: string,
   revalidatePath(`/novel/${novelId}/edit`)
   return { success: true }
 }
+
+// AI Proofreading Action
+export async function proofreadContent(content: string) {
+  try {
+    const response = await fetch("http://localhost:8000/api/proofread", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+      cache: 'no-store' 
+    });
+
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Proofread API Error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// AI Rewriting Action
+export async function rewriteContent(
+    fullText: string, 
+    selectedText: string, 
+    instruction: string, 
+    selectionRange: {start: number, end: number} | null, 
+    context: any
+) {
+  try {
+    const payload = {
+        mode: "rewrite",
+        data: {
+            fullText,
+            selectedText,
+            instruction,
+            selectionRange,
+            context
+        }
+    };
+
+    const response = await fetch("http://localhost:8000/api/rewrite", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Rewrite API Error:", error);
+    return { success: false, error: error.message };
+  }
+}
