@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getRequiredSession } from '@/lib/auth-utils'
 
 export async function updateChapterContent(chapterId: string, content: any, wordsCount: number) {
   const supabase = await createClient()
@@ -189,10 +190,13 @@ export async function updateChapterOrder(novelId: string, updates: { id: string,
 // AI Proofreading Action
 export async function proofreadContent(content: string) {
   try {
+    const session = await getRequiredSession()
+
     const response = await fetch("http://localhost:8000/api/proofread", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
       },
       body: JSON.stringify({ content }),
       cache: 'no-store' 
@@ -219,6 +223,8 @@ export async function rewriteContent(
     context: any
 ) {
   try {
+    const session = await getRequiredSession()
+
     const payload = {
         mode: "rewrite",
         data: {
@@ -234,6 +240,7 @@ export async function rewriteContent(
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify(payload),
         cache: 'no-store'

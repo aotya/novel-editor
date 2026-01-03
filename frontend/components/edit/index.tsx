@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -705,11 +705,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
        setSaveStatus('saved');
     }
   }, [activeChapterId, editor]); 
- 
 
-  if (!editor) {
-    return null;
-  }
 
   // Helper to handle chapter selection with unsaved check
   const handleChapterSelect = (chapterId: string) => {
@@ -722,7 +718,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
       setActiveChapterId(chapterId);
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!activeChapter || !editor) return;
 
     setSaveStatus('saving');
@@ -763,7 +759,23 @@ export default function Edit({ novel, initialActs }: EditProps) {
             )
         })));
     }
-  };
+  }, [activeChapter, editor, chapterTitle, novel.id]);
+
+  // Handle keyboard shortcuts (Cmd+S / Ctrl+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSave]);
 
   const handleCreateChapter = async (preferredActId?: string) => {
     if (saveStatus === 'unsaved') {
@@ -900,10 +912,12 @@ export default function Edit({ novel, initialActs }: EditProps) {
   };
 
   const insertText = (text: string) => {
+      if (!editor) return;
       editor.chain().focus().insertContent(text).run();
   };
 
   const wrapSelection = (startChar: string, endChar: string) => {
+      if (!editor) return;
       if (editor.state.selection.empty) {
           editor.chain().focus().insertContent(`${startChar}${endChar}`).setTextSelection(editor.state.selection.from + 1).run();
       } else {
@@ -914,6 +928,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
   };
 
   const insertRuby = () => {
+    if (!editor) return;
     if (editor.state.selection.empty) {
         const cursor = editor.state.selection.from;
         editor.chain().focus().insertContent('|《》').setTextSelection(cursor + 1).run();
@@ -925,6 +940,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
   };
 
   const autoIndent = () => {
+      if (!editor) return;
       const { state, dispatch } = editor.view;
       const { doc, tr } = state;
       
@@ -946,6 +962,10 @@ export default function Edit({ novel, initialActs }: EditProps) {
           alert('No indentation needed or already indented.');
       }
   };
+
+  if (!editor) {
+    return null;
+  }
 
   return (
     <div className={styles.container}>

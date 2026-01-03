@@ -1,10 +1,30 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
 import os
 import json
+import jwt
+import requests
+from dotenv import load_dotenv
+
+# 環境変数の読み込み
+# novel_adk/.env も読み込むように設定
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "novel_adk", ".env"))
+
+# Supabaseの設定
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+if not SUPABASE_URL:
+    # フォールバック（プロジェクトURLが設定されていない場合）
+    print("WARNING: NEXT_PUBLIC_SUPABASE_URL is not set!")
+
+JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json" if SUPABASE_URL else None
+
+# JWKクライアントの初期化（鍵を自動取得・キャッシュ）
+jwks_client = jwt.PyJWKClient(JWKS_URL) if JWKS_URL else None
 
 # パスを通す（必要に応じて）
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -15,10 +35,54 @@ from novel_adk.rewriter import rewriter_agent
 
 app = FastAPI(title="Novel Editor API")
 
+# セキュリティ設定
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """
+    SupabaseのJWTトークンを検証し、ユーザー情報を取得します。
+    JWKSを使用して公開鍵を自動取得します。
+    """
+    if not jwks_client:
+        print("DEBUG: JWK Client is not initialized (check NEXT_PUBLIC_SUPABASE_URL)")
+        raise HTTPException(status_code=500, detail="Supabase URL is not configured")
+
+    token = credentials.credentials
+    try:
+        # デバッグ用: トークンのヘッダーを確認
+        header = jwt.get_unverified_header(token)
+        print(f"DEBUG: JWT Header: {header}")
+
+        # Supabaseの公開鍵セットから適切な鍵を取得
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+
+        # トークンのデコードと検証
+        payload = jwt.decode(
+            token, 
+            signing_key.key, 
+            algorithms=["HS256", "ES256"], 
+            options={"verify_aud": False}
+        )
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            print("DEBUG: Token missing 'sub' claim")
+            raise HTTPException(status_code=401, detail="Invalid token: missing sub claim")
+        return payload
+    except Exception as e:
+        print(f"DEBUG: JWT Validation Error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Could not validate credentials: {str(e)}")
+
 # CORS設定（フロントエンドからのアクセスを許可）
+# 本番環境では特定のオリジンのみを許可するように設定
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    # 公開後の本番URLをここに追加してください (例: "https://your-novel-app.vercel.app")
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 開発環境なので全許可。本番ではフロントエンドのURLを指定してください
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +119,7 @@ def read_root():
     return {"message": "Novel Editor API is running. Send POST request to /api/edit, /api/proofread or /api/rewrite"}
 
 @app.post("/api/edit")
-def edit_novel(request: EditRequest):
+def edit_novel(request: EditRequest, user=Depends(get_current_user)):
     """
     小説の本文やプロットを受け取り、エージェントからのアドバイスを返します。
     """
@@ -67,7 +131,7 @@ def edit_novel(request: EditRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/proofread")
-def proofread_novel(request: EditRequest):
+def proofread_novel(request: EditRequest, user=Depends(get_current_user)):
     """
     小説の本文を受け取り、誤字脱字の指摘をJSON形式で返します。
     """
@@ -82,7 +146,7 @@ def proofread_novel(request: EditRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/rewrite")
-def rewrite_novel(request: RewriteRequest):
+def rewrite_novel(request: RewriteRequest, user=Depends(get_current_user)):
     """
     選択範囲のテキストを指示に従ってリライトします。
     """

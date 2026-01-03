@@ -3,4 +3,5 @@ uvicorn
 google-generativeai
 python-dotenv
 pydantic
-
+PyJWT[crypto]
+requests
