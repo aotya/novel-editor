@@ -49,33 +49,6 @@ type Suggestion = {
   label: string;
 };
 
-const mockSuggestions: Suggestion[] = [
-  {
-    id: '1',
-    type: 'typo',
-    label: '誤字脱字',
-    originalText: 'ふいんき',
-    suggestedText: '雰囲気（ふんいき）',
-    description: '「ふいんき」と入力されていますが、正しくは「ふんいき」です。',
-  },
-  {
-    id: '2',
-    type: 'grammar',
-    label: '文法',
-    originalText: '見れない',
-    suggestedText: '見られる',
-    description: 'ら抜き言葉になっています。',
-  },
-  {
-    id: '3',
-    type: 'expression',
-    label: '表現',
-    originalText: '激怒した',
-    suggestedText: '烈火のごとく怒った',
-    description: 'より情景が伝わる表現への言い換え提案です。',
-  },
-];
-
 type Chapter = {
   id: string;
   act_id: string;
@@ -1177,11 +1150,11 @@ export default function Edit({ novel, initialActs }: EditProps) {
                     <div className={styles.chapterMeta}>
                       <span className={styles.metaItem}>
                         <span className="material-symbols-outlined" style={{fontSize: '16px'}}>schedule</span>
-                        {activeChapter.status || 'Draft'}
+                        {activeChapter?.updated_at ? activeChapter.updated_at.split('T')[0] : ''}
                       </span>
                       <span className={styles.metaItem}>
                         <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
-                        {currentWordsCount} characters
+                        {currentWordsCount} words
                       </span>
                     </div>
 
