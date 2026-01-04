@@ -37,7 +37,8 @@ import {
   createAct,
   updateChapterOrder,
   proofreadContent,
-  rewriteContent
+  rewriteContent,
+  generateStory
 } from '@/app/novel/[slug]/edit/actions';
 
 type Suggestion = {
@@ -73,6 +74,7 @@ type Act = {
 type Novel = {
   id: string;
   title: string;
+  synopsis?: string;
   // ... other fields
 };
 
@@ -104,6 +106,20 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [selectionLength, setSelectionLength] = useState(0);
   const [editResult, setEditResult] = useState<{original: string, suggestion: string, reason: string} | null>(null);
   const [isEditLoading, setIsEditLoading] = useState(false);
+  const [writeChatInput, setWriteChatInput] = useState('');
+  
+  // Write Modal State
+  const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [writeSettings, setWriteSettings] = useState({
+      instructions: '',
+      useCharacters: true,
+      usePlot: true,
+      useRelationships: false,
+      useExistingContent: false,
+      wordCount: '2000',
+      pov: '一人称（私・僕）'
+  });
 
   const IndentOnEnter = Extension.create({
     name: 'indentOnEnter',
@@ -660,6 +676,133 @@ export default function Edit({ novel, initialActs }: EditProps) {
       setEditInstruction(text);
   };
 
+  const handleGenerateStoryExecute = async () => {
+    setIsGeneratingStory(true);
+    try {
+      const supabase = createClient();
+      
+      // Fetch characters if requested
+      let characterData = [];
+      if (writeSettings.useCharacters) {
+        const { data } = await supabase
+          .from('characters')
+          .select('*')
+          .eq('novel_id', novel.id);
+        characterData = data || [];
+      }
+
+      // Fetch plot if requested
+      let plotData: any[] = [];
+      if (writeSettings.usePlot) {
+        const { data: lists } = await supabase
+          .from('plot_lists')
+          .select('*, plot_cards(*)')
+          .eq('novel_id', novel.id)
+          .order('order_index', { ascending: true });
+        
+        if (lists) {
+            plotData = lists.map(list => ({
+                title: list.title,
+                scenes: (list as any).plot_cards.sort((a: any, b: any) => a.order_index - b.order_index).map((card: any) => ({
+                    content: card.content,
+                    note: card.note
+                }))
+            }));
+        }
+      }
+
+      // Fetch relationships if requested
+      let relationshipData: any[] = [];
+      if (writeSettings.useRelationships) {
+        const { data } = await supabase
+          .from('relationships')
+          .select('*, source:characters!source_character_id(name), target:characters!target_character_id(name)')
+          .eq('novel_id', novel.id);
+        
+        if (data) {
+            relationshipData = data.map(rel => ({
+                from: (rel as any).source.name,
+                to: (rel as any).target.name,
+                label: rel.label,
+                type: rel.arrow_type
+            }));
+        }
+      }
+
+      const payload = {
+        mode: "story-gen",
+        model: "gemini-2.5-flash",
+        data: {
+          title: novel?.title || "未設定",
+          overview: novel?.synopsis || "未設定",
+          references: {
+            correlationMap: writeSettings.useCharacters ? characterData : null,
+            plot: writeSettings.usePlot ? plotData : null,
+            relationMap: writeSettings.useRelationships ? relationshipData : null
+          },
+          baseContent: writeSettings.useExistingContent ? editor?.getText() : null,
+          config: {
+            targetLength: parseInt(writeSettings.wordCount) || 2000,
+            perspective: writeSettings.pov,
+            style: "novel",
+            instruction: writeSettings.instructions
+          }
+        }
+      };
+
+      const result = await generateStory(payload);
+      
+      if (result.success && result.data && result.data.generatedStory) {
+        const { title, content, summary, aiComment } = result.data.generatedStory;
+        
+        // 現在のActに新規チャプターを作成
+        let targetActId = acts[0]?.id;
+        if (activeChapterId) {
+          const foundAct = acts.find(act => act.chapters.some(c => c.id === activeChapterId));
+          if (foundAct) targetActId = foundAct.id;
+        }
+
+        if (targetActId) {
+          const createResult = await createChapter(novel.id, targetActId, title);
+          if (createResult.success && createResult.data) {
+            const newChapter = createResult.data;
+            
+            // チャプター内容を更新
+            const jsonContent = {
+              type: 'doc',
+              content: content.split('\n').map((line: string) => ({
+                type: 'paragraph',
+                content: line ? [{ type: 'text', text: line }] : []
+              }))
+            };
+
+            await updateChapterContent(newChapter.id, jsonContent, content.length);
+            
+            // ローカルステート更新と遷移
+            setActs(prevActs => prevActs.map(act => {
+              if (act.id === targetActId) {
+                return {
+                  ...act,
+                  chapters: [...act.chapters, { ...newChapter, content: jsonContent, words_count: content.length }]
+                };
+              }
+              return act;
+            }));
+            setActiveChapterId(newChapter.id);
+            setIsWriteModalOpen(false);
+          }
+        }
+      } else {
+        alert("生成に失敗しました。");
+      }
+    } catch (error) {
+      console.error("Generate Story Error:", error);
+      alert("エラーが発生しました。");
+    } finally {
+      setIsGeneratingStory(false);
+    }
+  };
+
   // Update storage when state changes
   useEffect(() => {
       if (editor) {
@@ -940,13 +1083,15 @@ export default function Edit({ novel, initialActs }: EditProps) {
     return null;
   }
 
+  console.log(novel);
+
   return (
     <div className={styles.container}>
       {/* Left Sidebar */}
       <aside className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarClosed : ''}`}>
         <div className={styles.sidebarHeader}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-            <h1 className={styles.projectTitle}>{novel.title}</h1>
+            <h1 className={styles.projectTitle}>{novel?.title}</h1>
             <button 
               onClick={() => setIsSidebarOpen(false)}
               className={styles.iconButton}
@@ -1191,7 +1336,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
                             className={`${styles.aiTab} ${aiActiveTab === 'write' ? styles.aiTabActive : ''}`}
                             onClick={() => setAiActiveTab('write')}
                         >
-                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit_note</span>
+                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit</span>
                             執筆
                         </div>
                     </div>
@@ -1401,16 +1546,210 @@ export default function Edit({ novel, initialActs }: EditProps) {
                         )}
                         
                         {aiActiveTab === 'write' && (
-                             <div className={styles.emptyStateContainer}>
-                                <span className={`material-symbols-outlined ${styles.emptyStateIcon}`}>edit_note</span>
-                                <p>執筆支援機能は準備中です</p>
-                             </div>
+                            <div className={styles.aiWriteContainer}>
+                                {/* AI Writing Assistant Card */}
+                                <div className={styles.assistantCard}>
+                                    <div className={styles.assistantHeader}>
+                                        <span className={`material-symbols-outlined ${styles.assistantIcon}`}>auto_fix</span>
+                                        <span className={styles.assistantTitle}>AI執筆アシスタント</span>
+                                    </div>
+                                    <p className={styles.assistantSubtitle}>
+                                        設定資料やプロットを読み込み、短編小説を自動生成します。
+                                    </p>
+                                    <button 
+                                        className={styles.generateNovelsButton}
+                                        onClick={() => setIsWriteModalOpen(true)}
+                                    >
+                                        <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit</span>
+                                        短編小説を生成する
+                                    </button>
+                                </div>
+
+                                {/* Chat Section */}
+                                <div>
+                                    <div className={styles.chatSectionTitle}>AIとの壁打ちチャット</div>
+                                    <div className={styles.chatContainer}>
+                                        <div className={styles.chatBubble}>
+                                            こんにちは。短編のアイデア出しですか？それとも執筆を開始しますか？
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Chat Input */}
+                                <div className={styles.chatInputContainer}>
+                                    <textarea 
+                                        className={styles.chatTextarea}
+                                        placeholder="AIに指示を出す..."
+                                        value={writeChatInput}
+                                        onChange={(e) => setWriteChatInput(e.target.value)}
+                                    />
+                                    <button className={styles.chatSendButton}>
+                                        <span className="material-symbols-outlined" style={{fontSize: '20px'}}>play_arrow</span>
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </aside>
             )}
         </div>
       </main>
+
+      {/* Write Settings Modal */}
+      {isWriteModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsWriteModalOpen(false)}>
+          <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleWrapper}>
+                <span className={`material-symbols-outlined ${styles.modalHeaderIcon}`}>auto_fix</span>
+                <span className={styles.modalTitle}>短編生成の設定</span>
+              </div>
+              <button className={styles.modalCloseButton} onClick={() => setIsWriteModalOpen(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className={styles.modalContent}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>タイトル</label>
+                <div className={styles.staticText}>
+                  {novel?.title || "未設定"}
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>あらすじ</label>
+                <div className={styles.staticTextarea}>
+                  {novel?.synopsis || "未設定"}
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>追加の指示</label>
+                <textarea 
+                  className={styles.formTextarea} 
+                  placeholder="例：今回はアクションシーンを多めに、緊迫感のある描写を意識して書いてください。"
+                  value={writeSettings.instructions}
+                  onChange={(e) => setWriteSettings({...writeSettings, instructions: e.target.value})}
+                />
+              </div>
+
+              <div className={styles.settingsSection}>
+                <div className={styles.settingsSectionTitle}>参照データの設定</div>
+                
+                <div className={styles.settingItem}>
+                  <div className={styles.settingItemLeft}>
+                    <div className={styles.settingItemIcon}>
+                      <span className="material-symbols-outlined">person</span>
+                    </div>
+                    <span className={styles.settingItemLabel}>キャラクター設定の読み取り</span>
+                  </div>
+                  <label className={styles.switch}>
+                    <input 
+                      type="checkbox" 
+                      checked={writeSettings.useCharacters}
+                      onChange={(e) => setWriteSettings({...writeSettings, useCharacters: e.target.checked})}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <div className={styles.settingItemLeft}>
+                    <div className={`${styles.settingItemIcon} ${styles.settingItemIconPurple}`}>
+                      <span className="material-symbols-outlined">description</span>
+                    </div>
+                    <span className={styles.settingItemLabel}>プロットの読み取り</span>
+                  </div>
+                  <label className={styles.switch}>
+                    <input 
+                      type="checkbox" 
+                      checked={writeSettings.usePlot}
+                      onChange={(e) => setWriteSettings({...writeSettings, usePlot: e.target.checked})}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <div className={styles.settingItemLeft}>
+                    <div className={`${styles.settingItemIcon} ${styles.settingItemIconGray}`}>
+                      <span className="material-symbols-outlined">account_tree</span>
+                    </div>
+                    <span className={styles.settingItemLabel}>相関図（関係性）の読み取り</span>
+                  </div>
+                  <label className={styles.switch}>
+                    <input 
+                      type="checkbox" 
+                      checked={writeSettings.useRelationships}
+                      onChange={(e) => setWriteSettings({...writeSettings, useRelationships: e.target.checked})}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <div className={styles.settingItemLeft}>
+                    <div className={`${styles.settingItemIcon} ${styles.settingItemIconPurple}`}>
+                      <span className="material-symbols-outlined">history_edu</span>
+                    </div>
+                    <span className={styles.settingItemLabel}>現在の内容をベースにする</span>
+                  </div>
+                  <label className={styles.switch}>
+                    <input 
+                      type="checkbox" 
+                      checked={writeSettings.useExistingContent}
+                      onChange={(e) => setWriteSettings({...writeSettings, useExistingContent: e.target.checked})}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} style={{display: 'flex', alignItems: 'center', gap: '0.25rem'}}>
+                    <span className="material-symbols-outlined" style={{fontSize: '18px'}}>bar_chart</span>
+                    希望文字数
+                  </label>
+                  <input 
+                    type="text" 
+                    className={styles.formInput} 
+                    value={writeSettings.wordCount}
+                    onChange={(e) => setWriteSettings({...writeSettings, wordCount: e.target.value})}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} style={{display: 'flex', alignItems: 'center', gap: '0.25rem'}}>
+                    <span className="material-symbols-outlined" style={{fontSize: '18px'}}>visibility</span>
+                    視点
+                  </label>
+                  <input 
+                    type="text" 
+                    className={styles.formInput} 
+                    value={writeSettings.pov}
+                    onChange={(e) => setWriteSettings({...writeSettings, pov: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button className={styles.cancelButton} onClick={() => setIsWriteModalOpen(false)} disabled={isGeneratingStory}>キャンセル</button>
+              <button 
+                className={styles.executeButton} 
+                onClick={handleGenerateStoryExecute}
+                disabled={isGeneratingStory}
+              >
+                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>
+                  {isGeneratingStory ? 'sync' : 'edit'}
+                </span>
+                {isGeneratingStory ? '生成中...' : '生成を実行'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -258,3 +258,31 @@ export async function rewriteContent(
     return { success: false, error: error.message };
   }
 }
+
+// AI Story Generation Action
+export async function generateStory(payload: any) {
+  try {
+    const session = await getRequiredSession();
+
+    const response = await fetch("http://localhost:8000/api/generate-story", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Generate Story API Error:", error);
+    return { success: false, error: error.message };
+  }
+}

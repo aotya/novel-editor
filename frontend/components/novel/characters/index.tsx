@@ -33,7 +33,7 @@ type Props = {
 const EMPTY_CHARACTER: Character = {
   id: 'new',
   name: '',
-  role: 'Protagonist',
+  role: '主人公',
   age: '',
   gender: 'Male',
   description: '',
@@ -83,7 +83,7 @@ export default function CharacterEditor({ novelId }: Props) {
         const formattedCharacters: Character[] = data.map(char => ({
           id: char.id,
           name: char.name,
-          role: char.role || 'Protagonist',
+          role: char.role || '主人公',
           age: char.age || '',
           gender: char.gender || 'Male',
           description: char.bio || '', // Map bio to description
@@ -427,7 +427,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 </div>
 
                 <div className={styles.fieldGroup}>
-                  <label className={styles.label}>Character Name</label>
+                  <label className={styles.label}>キャラクター名</label>
                   <input 
                     className={styles.input} 
                     type="text" 
@@ -437,7 +437,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 </div>
 
                 <div className={styles.fieldGroup}>
-                  <label className={styles.label}>Age</label>
+                  <label className={styles.label}>年齢</label>
                   <input 
                     className={styles.input} 
                     type="text" 
@@ -447,7 +447,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 </div>
 
                 <div className={styles.fieldGroup}>
-                  <label className={styles.label}>Gender</label>
+                  <label className={styles.label}>性別</label>
                   <div className={styles.selectWrapper}>
                     <select 
                         className={`${styles.input} ${styles.select}`} 
@@ -464,20 +464,14 @@ export default function CharacterEditor({ novelId }: Props) {
                 </div>
 
                 <div className={styles.fieldGroup}>
-                  <label className={styles.label}>Story Role</label>
-                  <div className={styles.selectWrapper}>
-                    <select 
-                        className={`${styles.input} ${styles.select}`} 
-                        value={formData.role}
-                        onChange={(e) => handleInputChange('role', e.target.value)}
-                    >
-                      <option>Protagonist</option>
-                      <option>Antagonist</option>
-                      <option>Support</option>
-                      <option>Minor</option>
-                    </select>
-                    <span className={`material-symbols-outlined ${styles.selectIcon}`}>expand_more</span>
-                  </div>
+                  <label className={styles.label}>役割</label>
+                  <input 
+                    className={styles.input} 
+                    type="text" 
+                    value={formData.role}
+                    onChange={(e) => handleInputChange('role', e.target.value)}
+                    placeholder="例：主人公、ライバル、師匠など"
+                  />
                 </div>
 
                 <div className={styles.divider}></div>
@@ -485,7 +479,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>palette</span>
-                    Appearance
+                    外見
                   </label>
                   <textarea 
                     className={`${styles.input} ${styles.textarea}`} 
@@ -498,7 +492,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>record_voice_over</span>
-                    First-person Pronoun
+                    第一人称代名詞（わたし・僕・俺・私など）
                   </label>
                   <input 
                     className={styles.input} 
@@ -511,7 +505,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>hearing</span>
-                    Second-person
+                    第二人称代名詞（あなた・君・お前など）
                   </label>
                   <input 
                     className={styles.input} 
@@ -524,7 +518,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>graphic_eq</span>
-                    Speech Style / Endings
+                    話し方・口調
                   </label>
                   <input 
                     className={styles.input} 
@@ -538,7 +532,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>psychology</span>
-                    Personality
+                    性格
                   </label>
                   <textarea 
                     className={`${styles.input} ${styles.textarea}`} 
@@ -551,7 +545,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chat_bubble</span>
-                    Sample Dialogue
+                    サンプル台詞
                   </label>
                   <textarea 
                     className={`${styles.input} ${styles.textarea} ${styles.italic}`} 
@@ -564,7 +558,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>swords</span>
-                    Combat Method
+                    戦闘方法
                   </label>
                   <textarea 
                     className={`${styles.input} ${styles.textarea}`} 
@@ -577,7 +571,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_fix</span>
-                    Magic / Abilities
+                    魔法・能力
                   </label>
                   <textarea 
                     className={`${styles.input} ${styles.textarea}`} 
@@ -590,7 +584,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>note</span>
-                    Other Notes
+                    その他のメモ
                   </label>
                   <textarea 
                     className={`${styles.input} ${styles.textarea}`} 
@@ -619,14 +613,14 @@ export default function CharacterEditor({ novelId }: Props) {
                     }}
                     disabled={saving}
                   >
-                    Cancel
+                    キャンセル
                   </button>
                   <button 
                     className={styles.saveButton} 
                     onClick={handleSave}
                     disabled={saving}
                   >
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? '保存中...' : '保存'}
                   </button>
                 </div>
               </form>
@@ -660,7 +654,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>palette</span>
-                    Appearance
+                    外見
                   </div>
                   <p className={styles.viewValue}>{formData.appearance}</p>
                 </div>
@@ -669,21 +663,21 @@ export default function CharacterEditor({ novelId }: Props) {
                   <div>
                     <div className={styles.viewLabel}>
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>record_voice_over</span>
-                      First-person
+                      第一人称代名詞（わたし・僕・俺・私など）
                     </div>
                     <p className={styles.viewValue}>{formData.firstPerson}</p>
                   </div>
                   <div>
                     <div className={styles.viewLabel}>
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>hearing</span>
-                      Second-person
+                      第二人称代名詞（あなた・君・お前など）
                     </div>
                     <p className={styles.viewValue}>{formData.secondPerson}</p>
                   </div>
                   <div>
                     <div className={styles.viewLabel}>
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>graphic_eq</span>
-                      Speech Style
+                      話し方・口調
                     </div>
                     <p className={styles.viewValue}>{formData.speechStyle}</p>
                   </div>
@@ -692,7 +686,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>psychology</span>
-                    Personality
+                    性格
                   </div>
                   <p className={styles.viewValue}>{formData.personality}</p>
                 </div>
@@ -700,7 +694,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chat_bubble</span>
-                    Sample Dialogue
+                    サンプル台詞
                   </div>
                   <p className={`${styles.viewValue} ${styles.italic}`}>
                     {formData.dialogue}
@@ -710,7 +704,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>swords</span>
-                    Combat Method
+                    戦闘方法
                   </div>
                   <p className={styles.viewValue}>{formData.combat}</p>
                 </div>
@@ -718,7 +712,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_fix</span>
-                    Magic / Abilities
+                    魔法・能力
                   </div>
                   <p className={styles.viewValue}>{formData.magic}</p>
                 </div>
@@ -726,7 +720,7 @@ export default function CharacterEditor({ novelId }: Props) {
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>note</span>
-                    Other Notes
+                    その他のメモ
                   </div>
                   <p className={styles.viewValue}>{formData.notes}</p>
                 </div>

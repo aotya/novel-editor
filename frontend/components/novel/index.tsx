@@ -112,10 +112,10 @@ export default function Novel({ novel, stats }: NovelProps) {
                   </p>
                 </div>
               </div>
-              <button className={styles.editButton}>
+              <Link href={`/novel/${novel.id}/settings`} className={styles.editButton}>
                 <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit</span>
                 Edit Details
-              </button>
+              </Link>
             </div>
           </div>
 

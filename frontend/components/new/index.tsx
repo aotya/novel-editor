@@ -2,17 +2,30 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { createNovel } from '@/app/new/actions';
+import { createNovel, updateNovel } from '@/app/new/actions';
 import styles from './new.module.css';
 
-export default function New() {
+type NewProps = {
+  initialData?: {
+    title: string;
+    synopsis: string | null;
+  };
+  novelId?: string;
+  backHref?: string;
+};
+
+export default function New({ initialData, novelId, backHref = "/" }: NewProps) {
   const [isPending, setIsPending] = useState(false);
+  const isEdit = !!novelId;
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true);
-    await createNovel(formData);
+    if (isEdit && novelId) {
+      await updateNovel(novelId, formData);
+    } else {
+      await createNovel(formData);
+    }
     // Note: If successful, it redirects, so we don't need to set isPending(false)
-    // But if there's an error handling added later without redirect, we might need it.
   }
 
   return (
@@ -35,51 +48,61 @@ export default function New() {
         <div className={styles.container}>
           
           <div className={styles.backLinkWrapper}>
-            <Link href="/" className={styles.backLink}>
+            <Link href={backHref} className={styles.backLink}>
               <span className="material-symbols-outlined" style={{fontSize: '16px'}}>arrow_back</span>
-              Back to Dashboard
+              {isEdit ? 'Back to Novel' : 'Back to Dashboard'}
             </Link>
           </div>
 
           <div className={styles.headerContent}>
-            <h1 className={styles.title}>Create New Project</h1>
-            <p className={styles.subtitle}>Start Your New Masterpiece. Fill in the details to get started.</p>
+            <h1 className={styles.title}>{isEdit ? '小説詳細編集' : '新規小説作成'}</h1>
+            <p className={styles.subtitle}>
+              {isEdit 
+                ? '小説の詳細情報を更新します。' 
+                : '新しい小説を作成します。詳細を入力して開始します。'}
+            </p>
           </div>
 
           <form action={handleSubmit} className={styles.formSection}>
             <div className={styles.formGroup}>
               <label className={styles.label}>
-                <span className={styles.labelText}>Novel Title</span>
+                <span className={styles.labelText}>小説タイトル</span>
                 <input 
                   name="title"
                   autoFocus 
                   className={styles.input} 
-                  placeholder="The Name of the Wind..." 
+                  placeholder="小説タイトルを入力してください。" 
                   type="text" 
                   required
+                  defaultValue={initialData?.title}
                 />
                 <span className={styles.helperText}>A catchy title can be changed later.</span>
               </label>
               
               <label className={styles.label} style={{flexGrow: 1}}>
-                <span className={styles.labelText}>Synopsis / Overview</span>
+                <span className={styles.labelText}>概要 / オーバービュー</span>
                 <textarea 
                   name="synopsis"
                   className={styles.textarea} 
                   placeholder="In a world where..."
+                  defaultValue={initialData?.synopsis || ''}
                 ></textarea>
                 <span className={styles.helperText}>Write a brief elevator pitch or summary. You can expand on this later.</span>
               </label>
 
               <div className={styles.footerActions}>
-                <Link href="/">
+                <Link href={backHref}>
                   <button type="button" className={styles.cancelButton}>
-                    Cancel
+                    キャンセル
                   </button>
                 </Link>
                 <button type="submit" className={styles.createButton} disabled={isPending}>
-                  <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
-                  {isPending ? 'Creating...' : 'Create Project'}
+                  <span className="material-symbols-outlined" style={{fontSize: '20px'}}>
+                    {isEdit ? 'save' : 'add'}
+                  </span>
+                  {isPending 
+                    ? (isEdit ? '保存中...' : '作成中...') 
+                    : (isEdit ? '保存' : '作成')}
                 </button>
               </div>
             </div>

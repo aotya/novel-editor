@@ -37,7 +37,7 @@ export default function Home({ novels }: HomeProps) {
               <Link href="/new">
                 <button className={styles.createButton}>
                   <span className={`material-symbols-outlined`}>add</span>
-                  <span>Create New Novel</span>
+                  <span>新規小説作成</span>
                 </button>
               </Link>
             </div>

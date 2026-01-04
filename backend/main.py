@@ -32,6 +32,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from novel_adk.agent import root_agent
 from novel_adk.proofreader import proofreader_agent
 from novel_adk.rewriter import rewriter_agent
+from novel_adk.story_generator import story_generator_agent
 
 app = FastAPI(title="Novel Editor API")
 
@@ -114,9 +115,33 @@ class RewriteRequest(BaseModel):
     mode: str = "rewrite"
     data: RewriteData
 
+# Story Generation API用のデータモデル
+class StoryGenReferences(BaseModel):
+    correlationMap: Optional[List[Any]] = None
+    plot: Optional[List[Any]] = None
+    relationMap: Optional[List[Any]] = None
+
+class StoryGenConfig(BaseModel):
+    targetLength: int
+    perspective: str
+    style: str = "novel"
+    instruction: Optional[str] = None
+
+class StoryGenData(BaseModel):
+    title: str
+    overview: str
+    references: StoryGenReferences
+    baseContent: Optional[str] = None
+    config: StoryGenConfig
+
+class StoryGenRequest(BaseModel):
+    mode: str = "story-gen"
+    model: str = "gemini-2.5-flash"
+    data: StoryGenData
+
 @app.get("/")
 def read_root():
-    return {"message": "Novel Editor API is running. Send POST request to /api/edit, /api/proofread or /api/rewrite"}
+    return {"message": "Novel Editor API is running. Send POST request to /api/edit, /api/proofread, /api/rewrite or /api/generate-story"}
 
 @app.post("/api/edit")
 def edit_novel(request: EditRequest, user=Depends(get_current_user)):
@@ -158,6 +183,25 @@ def rewrite_novel(request: RewriteRequest, user=Depends(get_current_user)):
         
         # エージェントを使って応答を生成
         raw_response = rewriter_agent.generate_response(prompt)
+        
+        # JSONクリーニングとパース
+        return parse_json_response(raw_response)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-story")
+def generate_story(request: StoryGenRequest, user=Depends(get_current_user)):
+    """
+    小説の設定データに基づき、短編小説を生成します。
+    """
+    try:
+        # AIへのプロンプトを作成
+        prompt_data = request.data.model_dump()
+        prompt = json.dumps(prompt_data, ensure_ascii=False, indent=2)
+        
+        # エージェントを使って応答を生成
+        raw_response = story_generator_agent.generate_response(prompt)
         
         # JSONクリーニングとパース
         return parse_json_response(raw_response)
