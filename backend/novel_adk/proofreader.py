@@ -1,7 +1,11 @@
+import os
 from .base import Agent
 
+# モデル名を環境変数から取得
+model_name = os.getenv("GENERATIVE_MODEL", "gemini-2.5-flash")
+
 proofreader_agent = Agent(
-    model='gemini-2.5-flash',
+    model=model_name,
     name='novel_proofreader',
     description='A proofreader that finds typos and grammatical errors.',
     instruction="""

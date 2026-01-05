@@ -136,7 +136,7 @@ class StoryGenData(BaseModel):
 
 class StoryGenRequest(BaseModel):
     mode: str = "story-gen"
-    model: str = "gemini-2.5-flash"
+    model: Optional[str] = os.getenv("GENERATIVE_MODEL", "gemini-2.5-flash")
     data: StoryGenData
 
 @app.get("/")

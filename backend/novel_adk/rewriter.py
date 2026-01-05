@@ -1,8 +1,12 @@
+import os
 from .base import Agent
 import json
 
+# モデル名を環境変数から取得
+model_name = os.getenv("GENERATIVE_MODEL", "gemini-2.5-flash")
+
 rewriter_agent = Agent(
-    model='gemini-2.5-flash',
+    model=model_name,
     name='novel_rewriter',
     description='A specialized agent for rewriting novel text based on instructions.',
     instruction="""

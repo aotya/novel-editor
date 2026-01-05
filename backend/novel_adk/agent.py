@@ -1,10 +1,12 @@
+import os
 from .base import Agent
+
+# モデル名を環境変数から取得
+model_name = os.getenv("GENERATIVE_MODEL", "gemini-2.5-flash")
 
 # ユーザーの設定に基づいたエージェントの定義
 root_agent = Agent(
-    # 実際のモデル名に合わせて調整してください（例: gemini-1.5-flash）
-    model='gemini-2.5-flash', # 現時点では gemini-1.5-flash などが一般的です
-    
+    model=model_name,
     name='novel_editor',
     description='A helpful assistant for user questions.',
     instruction="""

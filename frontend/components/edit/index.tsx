@@ -731,7 +731,6 @@ export default function Edit({ novel, initialActs }: EditProps) {
 
       const payload = {
         mode: "story-gen",
-        model: "gemini-2.5-flash",
         data: {
           title: novel?.title || "未設定",
           overview: novel?.synopsis || "未設定",
