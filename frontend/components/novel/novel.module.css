@@ -109,12 +109,9 @@
   white-space: nowrap;
   padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--app-border);
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--toolbar-bg);
   backdrop-filter: blur(12px);
-
-  @media (prefers-color-scheme: dark) {
-    background-color: rgba(15, 23, 42, 0.8); /* slate-900/80 */
-  }
+  opacity: 0.98;
 }
 
 .mobileMenuButton {
@@ -148,7 +145,7 @@
 }
 
 .breadcrumbSeparator {
-  color: #94a3b8; /* slate-400 */
+  color: var(--app-text-muted);
   font-weight: 500;
 }
 
@@ -170,7 +167,7 @@
   border-radius: 9999px;
   width: 2.25rem;
   height: 2.25rem;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--app-surface);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
 }
@@ -228,10 +225,17 @@
   width: 6rem;
   flex-shrink: 0;
   transition: transform 0.3s;
+  background-color: var(--plus-icon-bg);
 
   &:hover {
     transform: scale(1.05);
   }
+}
+
+.defaultCoverIcon {
+  font-size: 48px !important;
+  color: var(--primary);
+  opacity: 0.7;
 }
 
 .bookDetails {
@@ -382,7 +386,15 @@
 .iconBlue {
   background-color: #eff6ff;
   color: #2563eb;
-  @media (prefers-color-scheme: dark) {
+}
+
+:global([data-theme='dark']) .iconBlue {
+  background-color: rgba(30, 58, 138, 0.2);
+  color: #60a5fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .iconBlue {
     background-color: rgba(30, 58, 138, 0.2);
     color: #60a5fa;
   }
@@ -391,7 +403,15 @@
 .iconPurple {
   background-color: #faf5ff;
   color: #9333ea;
-  @media (prefers-color-scheme: dark) {
+}
+
+:global([data-theme='dark']) .iconPurple {
+  background-color: rgba(88, 28, 135, 0.2);
+  color: #c084fc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .iconPurple {
     background-color: rgba(88, 28, 135, 0.2);
     color: #c084fc;
   }
@@ -400,7 +420,15 @@
 .iconEmerald {
   background-color: #ecfdf5;
   color: #059669;
-  @media (prefers-color-scheme: dark) {
+}
+
+:global([data-theme='dark']) .iconEmerald {
+  background-color: rgba(6, 78, 59, 0.2);
+  color: #34d399;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .iconEmerald {
     background-color: rgba(6, 78, 59, 0.2);
     color: #34d399;
   }
@@ -409,7 +437,15 @@
 .iconAmber {
   background-color: #fffbeb;
   color: #d97706;
-  @media (prefers-color-scheme: dark) {
+}
+
+:global([data-theme='dark']) .iconAmber {
+  background-color: rgba(120, 53, 15, 0.2);
+  color: #fbbf24;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .iconAmber {
     background-color: rgba(120, 53, 15, 0.2);
     color: #fbbf24;
   }

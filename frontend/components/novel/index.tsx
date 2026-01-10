@@ -89,14 +89,13 @@ export default function Novel({ novel, stats }: NovelProps) {
                   className={styles.bookCover} 
                   style={{
                     backgroundImage: novel.image_url ? `url("${novel.image_url}")` : undefined,
-                    backgroundColor: !novel.image_url ? '#e0e7ff' : undefined,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}
                 >
                   {!novel.image_url && (
-                    <span className="material-symbols-outlined" style={{fontSize: '48px', color: '#6366f1'}}>menu_book</span>
+                    <span className={`material-symbols-outlined ${styles.defaultCoverIcon}`}>menu_book</span>
                   )}
                 </div>
                 <div className={styles.bookDetails}>

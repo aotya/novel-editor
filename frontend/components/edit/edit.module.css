@@ -2,7 +2,7 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background-color: #ffffff;
+  background-color: var(--app-bg);
 }
 
 .sidebar {
@@ -11,7 +11,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--app-border);
-  background-color: #f9f8fc;
+  background-color: var(--sidebar-bg);
   height: 100%;
   transition: width 0.3s ease, transform 0.3s ease;
   overflow: hidden;
@@ -28,11 +28,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.5); /* border-gray-200/50 */
+  border-bottom: 1px solid var(--app-border);
 }
 
 .projectTitle {
-  color: #100e1b;
+  color: var(--app-text);
   font-size: 1.125rem;
   font-weight: 700;
   line-height: 1.25;
@@ -42,19 +42,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5a4e97;
+  color: var(--app-text-muted);
   padding: 0.25rem;
   border-radius: 0.25rem;
   transition: all 0.2s;
   
   &:hover {
-    background-color: #f3f4f6;
-    color: #100e1b;
+    background-color: var(--app-bg);
+    color: var(--app-text);
   }
 }
 
 .backLink {
-  color: #5a4e97;
+  color: var(--app-text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   display: flex;
@@ -72,7 +72,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.3);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .actionButton {
@@ -81,11 +81,11 @@
   justify-content: center;
   gap: 0.5rem;
   border-radius: 0.5rem;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border);
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
-  color: #100e1b;
+  color: var(--app-text);
   font-weight: 500;
   transition: all 0.2s;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -103,7 +103,7 @@
 
 .actionButtonIcon {
   font-size: 1.25rem;
-  color: #5a4e97;
+  color: var(--app-text-muted);
   transition: color 0.2s;
 }
 
@@ -141,12 +141,12 @@
 }
 
 .actIcon {
-  color: #5a4e97;
+  color: var(--app-text-muted);
   font-size: 1.25rem;
 }
 
 .actTitle {
-  color: #100e1b;
+  color: var(--app-text);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -166,13 +166,14 @@
   width: 100%;
   text-align: left;
   position: relative;
+  color: var(--app-text);
 
   &:hover {
-    background-color: #ffffff;
+    background-color: var(--app-surface);
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
     .chapterIcon {
-      color: #100e1b;
+      color: var(--app-text);
     }
     
     .itemActions {
@@ -213,14 +214,14 @@
 }
 
 .chapterIcon {
-  color: #5a4e97;
+  color: var(--app-text-muted);
   font-size: 1.25rem;
   transition: color 0.2s;
   flex-shrink: 0;
 }
 
 .chapterTitle {
-  color: #100e1b;
+  color: inherit;
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
@@ -237,7 +238,7 @@
 }
 
 .actionIcon {
-  color: #94a3b8; /* slate-400 */
+  color: var(--app-text-muted);
   padding: 0.25rem;
   border-radius: 0.25rem;
   cursor: pointer;
@@ -258,7 +259,7 @@
 .sidebarFooter {
   padding: 1rem;
   border-top: 1px solid var(--app-border);
-  background-color: #f9f8fc;
+  background-color: var(--sidebar-bg);
 }
 
 .newChapterButton {
@@ -287,7 +288,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
+  background-color: var(--app-bg);
   position: relative;
   min-width: 0;
 }
@@ -299,7 +300,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem;
-  background-color: #ffffff;
+  background-color: var(--toolbar-bg);
   z-index: 10;
   position: sticky;
   top: 0;
@@ -329,19 +330,19 @@
 .toolButton {
   padding: 0.375rem;
   border-radius: 0.25rem;
-  color: #100e1b;
+  color: var(--app-text);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #f3f4f6;
+    background-color: var(--app-surface);
   }
 }
 
 .toolButtonActive {
-  background-color: #f3f4f6;
+  background-color: var(--app-surface);
   color: var(--primary);
 }
 
@@ -352,12 +353,12 @@
   padding: 0.375rem 0.5rem;
   border-radius: 0.25rem;
   transition: background-color 0.2s;
-  color: #100e1b;
+  color: var(--app-text);
   font-size: 0.875rem;
   font-weight: 500;
 
   &:hover {
-    background-color: #f3f4f6;
+    background-color: var(--app-surface);
   }
 }
 
@@ -369,7 +370,7 @@
 
 .saveStatus {
   font-size: 0.75rem;
-  color: #5a4e97;
+  color: var(--app-text-muted);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -392,7 +393,7 @@
 .editorContainer {
   flex: 1;
   overflow-y: auto;
-  background-color: #fafafa;
+  background-color: var(--app-bg);
 }
 
 .editorPaper {
@@ -406,9 +407,9 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  background-color: var(--paper-bg);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(229, 231, 235, 0.6);
+  border: 1px solid var(--app-border);
   min-height: 800px;
   padding: 4rem 3rem;
   border-radius: 0.125rem;
@@ -418,7 +419,7 @@
   width: 100%;
   font-size: 2.25rem;
   font-weight: 700;
-  color: #100e1b;
+  color: var(--app-text);
   border: none;
   outline: none;
   padding: 0;
@@ -426,7 +427,7 @@
   background: transparent;
 
   &::placeholder {
-    color: #d1d5db;
+    color: var(--app-text-muted);
   }
 }
 
@@ -435,9 +436,9 @@
   align-items: center;
   gap: 1rem;
   font-size: 0.875rem;
-  color: #5a4e97;
+  color: var(--app-text-muted);
   margin-bottom: 2rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--app-border);
   padding-bottom: 1rem;
 }
 
@@ -454,7 +455,7 @@
   outline: none;
   font-size: 1.125rem;
   line-height: 1.75; /* relaxed */
-  color: #100e1b;
+  color: var(--app-text);
   font-weight: 400;
 
   :global(.ProseMirror) {
@@ -486,28 +487,30 @@
   :global(ol) { list-style-type: decimal; }
   
   :global(blockquote) {
-      border-left: 3px solid #e5e7eb;
+      border-left: 3px solid var(--app-border);
       padding-left: 1rem;
       margin-left: 0;
-      color: #4b5563;
+      color: var(--app-text-muted);
   }
 
   /* AI Highlights */
   :global(.ai-highlight-typo) {
-    background-color: #fef2f2; /* red-50 */
-    border-bottom: 2px solid #fca5a5; /* red-300 */
+    background-color: rgba(239, 68, 68, 0.1); /* red-50 */
+    border-bottom: 2px solid #ef4444; /* red-300 */
     padding: 0 0.25rem;
     border-radius: 0.125rem;
   }
   
   :global(.ai-highlight-grammar) {
-    background-color: #fef3c7; /* amber-100 */
+    background-color: rgba(245, 158, 11, 0.1); /* amber-100 */
+    border-bottom: 2px solid #f59e0b;
     padding: 0 0.25rem;
     border-radius: 0.125rem;
   }
 
   :global(.ai-highlight-expression) {
-    background-color: #dbeafe; /* blue-100 */
+    background-color: rgba(59, 130, 246, 0.1); /* blue-100 */
+    border-bottom: 2px solid #3b82f6;
     padding: 0 0.25rem;
     border-radius: 0.125rem;
   }
@@ -526,7 +529,7 @@
     display: flex;
     flex-direction: column;
     border-left: 1px solid var(--app-border);
-    background-color: #f9f8fc;
+    background-color: var(--sidebar-bg);
     height: 100%;
     overflow: hidden; /* Changed to hidden to handle inner scrolling */
 }
@@ -534,7 +537,7 @@
 .aiTabs {
   display: flex;
   border-bottom: 1px solid var(--app-border);
-  background-color: #ffffff;
+  background-color: var(--toolbar-bg);
   flex-shrink: 0;
 }
 
@@ -547,14 +550,14 @@
   padding: 1rem 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--app-text-muted);
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
   cursor: pointer;
 
   &:hover {
     color: var(--primary);
-    background-color: #f8fafc;
+    background-color: var(--app-surface);
   }
 }
 
@@ -574,8 +577,8 @@
 }
 
 .summaryBox {
-    background-color: #eff6ff; /* blue-50 */
-    border: 1px solid #dbeafe; /* blue-100 */
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
     border-radius: 0.75rem;
     padding: 1rem;
     display: flex;

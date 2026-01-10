@@ -217,7 +217,7 @@ const ContextMenu = ({
         <span className="material-symbols-outlined" style={{fontSize: '16px'}}>remove</span>
         No Arrow
       </div>
-      <div style={{height: '1px', backgroundColor: '#e2e8f0', margin: '4px 0'}}></div>
+      <div style={{height: '1px', backgroundColor: 'var(--app-border)', margin: '4px 0'}}></div>
       <div className={`${styles.contextMenuItem} ${styles.contextMenuItemDelete}`} onClick={() => onAction('delete')}>
         <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span>
         Delete Connection
@@ -330,8 +330,11 @@ const RelationshipsCanvas = ({
           let markerEnd = edge.markerEnd;
           let markerStart = edge.markerStart;
           
-          // Helper for markers
-          const arrowMarker = { type: MarkerType.ArrowClosed, color: '#cbd5e1' };
+          // Helper for markers - using CSS variable for color
+          const arrowMarker = { 
+            type: MarkerType.ArrowClosed, 
+            color: 'var(--app-text-muted)' 
+          };
 
           switch(action) {
             case 'forward':
@@ -382,7 +385,7 @@ const RelationshipsCanvas = ({
                 fitView
                 deleteKeyCode={['Backspace', 'Delete']}
             >
-                <Background color="#e2e1e9" gap={20} size={1} />
+                <Background color="var(--app-border)" gap={20} size={1} />
                 {menu && <ContextMenu x={menu.x} y={menu.y} onClose={closeMenu} onAction={handleMenuAction} />}
                 
                 {/* Custom Toolbar */}
@@ -433,7 +436,10 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
   // Initialize Edges from Relationships
   const initialEdges: Edge[] = initialRelationships.map(r => {
      let markerEnd, markerStart;
-     const arrowMarker = { type: MarkerType.ArrowClosed, color: '#cbd5e1' };
+     const arrowMarker = { 
+       type: MarkerType.ArrowClosed, 
+       color: 'var(--app-text-muted)' 
+     };
      
      switch(r.arrow_type) {
         case 'forward': markerEnd = arrowMarker; break;
@@ -451,7 +457,7 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
         label: r.label,
         markerEnd,
         markerStart,
-        style: { stroke: '#cbd5e1', strokeWidth: 2 },
+        style: { stroke: 'var(--app-text-muted)', strokeWidth: 2 },
         data: { arrowType: r.arrow_type }
      };
   });
@@ -470,9 +476,9 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
       label: 'Relationship',
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#cbd5e1',
+        color: 'var(--app-text-muted)',
       },
-      style: { stroke: '#cbd5e1', strokeWidth: 2 },
+      style: { stroke: 'var(--app-text-muted)', strokeWidth: 2 },
       data: { arrowType: 'forward' }
     }, eds)),
     [setEdges],
@@ -518,7 +524,7 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
             <Link href={`/novel/${novel.id}`} className={styles.breadcrumbLink}>
               Novel
             </Link>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#cbd5e1' }}>chevron_right</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--app-text-muted)' }}>chevron_right</span>
             <span className={styles.breadcrumbActive}>Relationship Diagram</span>
           </nav>
         </div>
@@ -554,7 +560,7 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
             <h3 className={styles.sectionTitle}>Unplaced Characters</h3>
             
             {unplacedCharacters.length === 0 && (
-                <p style={{fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center'}}>All characters placed</p>
+                <p style={{fontSize: '0.8rem', color: 'var(--app-text-muted)', textAlign: 'center'}}>All characters placed</p>
             )}
 
             {unplacedCharacters.map(char => (

@@ -255,14 +255,10 @@
   gap: 1rem;
   min-height: 320px;
   border-radius: 0.75rem;
-  border: 2px dashed #cbd5e1; /* slate-300 */
+  border: 2px dashed var(--card-dashed-border);
   transition: all 0.2s;
   cursor: pointer;
   background: transparent;
-
-  @media (prefers-color-scheme: dark) {
-    border-color: #334155; /* slate-700 */
-  }
 
   &:hover {
     border-color: var(--primary);
@@ -283,15 +279,11 @@
   width: 4rem;
   height: 4rem;
   border-radius: 9999px;
-  background-color: #f1f5f9; /* slate-100 */
+  background-color: var(--plus-icon-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
-
-  @media (prefers-color-scheme: dark) {
-    background-color: #1e293b; /* slate-800 */
-  }
 }
 
 .plusIcon {

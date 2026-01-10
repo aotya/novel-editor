@@ -225,11 +225,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.5); /* slate-200/50 */
-  background-color: rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid var(--app-border);
+  background-color: var(--app-surface);
   border-radius: 0.75rem 0.75rem 0 0;
 }
-/* Dark mode background for header would need adjustment based on theme */
 
 .columnTitleContainer {
   display: flex;
@@ -268,7 +267,7 @@
   background: transparent;
 }
 .columnContent::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--scrollbar-thumb);
   border-radius: 20px;
 }
 
@@ -328,7 +327,7 @@
 .columnFooter {
   padding: 0.75rem;
   flex-shrink: 0;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--app-surface);
   border-radius: 0 0 0.75rem 0.75rem;
   border-top: 1px solid var(--app-border);
 }
@@ -348,7 +347,7 @@
   gap: 0.25rem;
 }
 .addSceneButton:hover {
-  background-color: var(--app-surface);
+  background-color: var(--scrollbar-track);
   color: #5552ea;
   border-color: rgba(85, 82, 234, 0.5);
 }
@@ -379,7 +378,7 @@
   transition: all 0.2s;
 }
 .addChapterCard:hover {
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--scrollbar-track);
   border-color: rgba(85, 82, 234, 0.4);
 }
 

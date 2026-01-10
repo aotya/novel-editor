@@ -23,10 +23,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" />
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const savedTheme = localStorage.getItem('theme');
+              if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+              } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+              }
+            })()
+          `
+        }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}

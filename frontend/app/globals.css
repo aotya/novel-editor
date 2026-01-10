@@ -15,6 +15,11 @@
   --app-text: #0f172a; /* slate-900 */
   --app-text-muted: #64748b; /* slate-500 */
   --app-border: #e2e8f0; /* slate-200 */
+  --card-dashed-border: #cbd5e1; /* slate-300 */
+  --plus-icon-bg: #f1f5f9; /* slate-100 */
+  --paper-bg: #ffffff;
+  --sidebar-bg: #f9f8fc;
+  --toolbar-bg: #ffffff;
 
   /* Scrollbar colors */
   --scrollbar-track: #f1f5f9;
@@ -23,7 +28,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --background: #0a0a0a;
     --foreground: #ededed;
     
@@ -33,12 +38,61 @@
     --app-text: #ffffff;
     --app-text-muted: #94a3b8; /* slate-400 */
     --app-border: #1e293b; /* slate-800 */
+    --card-dashed-border: #334155; /* slate-700 */
+    --plus-icon-bg: #1e293b; /* slate-800 */
+    --paper-bg: #1e1b2e;
+    --sidebar-bg: #141121;
+    --toolbar-bg: #1e1b2e;
 
     /* Scrollbar colors dark */
     --scrollbar-track: #141121;
     --scrollbar-thumb: #3c3465;
     --scrollbar-thumb-hover: #4f46e5;
   }
+}
+
+:root[data-theme='dark'] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  
+  /* Dark mode mappings */
+  --app-bg: var(--background-dark);
+  --app-surface: var(--surface-dark);
+  --app-text: #ffffff;
+  --app-text-muted: #94a3b8; /* slate-400 */
+  --app-border: #1e293b; /* slate-800 */
+  --card-dashed-border: #334155; /* slate-700 */
+  --plus-icon-bg: #1e293b; /* slate-800 */
+  --paper-bg: #1e1b2e;
+  --sidebar-bg: #141121;
+  --toolbar-bg: #1e1b2e;
+
+  /* Scrollbar colors dark */
+  --scrollbar-track: #141121;
+  --scrollbar-thumb: #3c3465;
+  --scrollbar-thumb-hover: #4f46e5;
+}
+
+:root[data-theme='light'] {
+  --background: #ffffff;
+  --foreground: #171717;
+  
+  /* Mapping to semantic names */
+  --app-bg: var(--background-light);
+  --app-surface: var(--surface-light);
+  --app-text: #0f172a;
+  --app-text-muted: #64748b;
+  --app-border: #e2e8f0;
+  --card-dashed-border: #cbd5e1; /* slate-300 */
+  --plus-icon-bg: #f1f5f9; /* slate-100 */
+  --paper-bg: #ffffff;
+  --sidebar-bg: #f9f8fc;
+  --toolbar-bg: #ffffff;
+
+  /* Scrollbar colors */
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
 }
 
 html,

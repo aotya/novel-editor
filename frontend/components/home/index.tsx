@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './home.module.css';
 
@@ -18,6 +20,22 @@ type HomeProps = {
 };
 
 export default function Home({ novels }: HomeProps) {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const initialTheme = root.getAttribute('data-theme') as 'light' | 'dark' || 
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setTheme(initialTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
   return (
     <div className={styles.wrapper}>
       <main className={styles.main}>
@@ -54,6 +72,12 @@ export default function Home({ novels }: HomeProps) {
               />
             </div>
             <div className={styles.filtersGroup}>
+              <button className={styles.filterButton} onClick={toggleTheme}>
+                <span className={`material-symbols-outlined ${styles.filterIcon}`}>
+                  {theme === 'light' ? 'dark_mode' : 'light_mode'}
+                </span>
+                <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
+              </button>
               <button className={styles.filterButton}>
                 <span>Sort: Recent</span>
                 <span className={`material-symbols-outlined ${styles.filterIcon}`}>keyboard_arrow_down</span>
