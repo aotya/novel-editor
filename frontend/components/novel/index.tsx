@@ -73,10 +73,6 @@ export default function Novel({ novel, stats }: NovelProps) {
               <span className={styles.breadcrumbCurrent}>{novel.title}</span>
             </div>
           </div>
-          
-          <div className={styles.topBarActions}>
-            <div className={styles.avatar} style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuABa5BdUzss_zAwdWFWSv7rEiHfT26mVjC_CmG2U8YlTDggjjpL2PQ9NKEc03opsMCX2e8_4FJ4cOWJycucFxZye56uTbTE3o8ZRmf_3CgWpexSOr7XFAVyuTVhvr1rJfA0nPt7HyNQOqy0z9uzO2YaRgbLUlzhU6N-jI2PUQmlVLkN_wzWC0KUXf_ZfEFA2M6tOre_NhiSKdlbCWDhENCS131f1qgFL9O3FwFJUvzx8sxMBNmddAXwZ7QK5utfx0NoKqx6GIK4Ajzb")'}}></div>
-          </div>
         </header>
 
         {/* Content Body */}

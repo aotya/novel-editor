@@ -465,6 +465,22 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Handle mobile resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    handleResize(); // Check on initial load
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Calculate placed character IDs based on current nodes
   const placedCharacterIds = new Set(nodes.map(n => n.id));
@@ -545,7 +561,7 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
 
       <div className={styles.main}>
         {/* Sidebar */}
-        <aside className={styles.sidebar}>
+        <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
           <div className={styles.searchContainer}>
             <div className={styles.searchInputWrapper}>
               <span className={`material-symbols-outlined ${styles.searchIcon}`}>search</span>
@@ -613,6 +629,31 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
             />
         </ReactFlowProvider>
       </div>
+
+      {/* Mobile Footer & Overlay */}
+      <div 
+        className={`${styles.mobileOverlay} ${isSidebarOpen ? styles.show : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      <footer className={styles.mobileFooter}>
+        <div className={styles.mobileFooterContent}>
+          <button 
+            className={styles.mobileFooterButton}
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <span className="material-symbols-outlined">group</span>
+            <span>Character List</span>
+          </button>
+          <button 
+            className={`${styles.mobileFooterButton} ${styles.mobileFooterButtonPrimary}`}
+            onClick={() => {/* Relationship diagram might not have a direct "add new" here but we follow pattern */}}
+          >
+            <span className="material-symbols-outlined">person_add</span>
+            <span>New Character</span>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 };

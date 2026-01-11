@@ -250,11 +250,6 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
             </Link>
             <div className={styles.titleWrapper}>
               <h1 className={styles.novelTitle}>{novelTitle}</h1>
-              <span className={styles.titleSeparator}>/</span>
-              <div className={styles.pageLabel}>
-                <span className="material-symbols-outlined" style={{fontSize: '18px'}}>dashboard</span>
-                <span className={styles.pageLabelText}>プロットボード</span>
-              </div>
             </div>
           </div>
         </div>
@@ -269,20 +264,6 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
                 {saving ? 'sync' : 'save'}
             </span>
             <span>{saving ? '保存中...' : '保存'}</span>
-          </button>
-          
-          <div className={styles.divider} style={{height: '1.5rem'}}></div>
-          
-          <div className={styles.userAvatars}>
-            <div 
-              className={styles.avatar} 
-              style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuD0Ckjzi7OEub2HECp9oT7BXT-no2JWqGcKp6cBShPrie0tT-0zrw7S3_7EldyZZdCLqADoqh82-rw9IWOcKnNpqGgiqoFxLcmQyStKct9zRsdK4rKOXlrD06VgfoLACkjWiLaFfTtdb8AfHICWFwK09uw1b9Uz9nPeVoNHrpsOW546qHrZVzDBKZOa848I7FHpwJO_if_CGblMOTDbyfnNW1dH8fN9wjq7B7b0Si07xCuJJdVeiHMsQ5euZHjRhNZPYsRx4XhS67VG")'}}
-            />
-          </div>
-          
-          <button className={styles.addChapterButton} onClick={handleAddChapter}>
-            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
-            <span className="hidden sm:inline">章を追加</span>
           </button>
         </div>
       </header>

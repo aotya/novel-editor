@@ -154,11 +154,6 @@
   font-weight: 600;
 }
 
-.topBarActions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
 
 .avatar {
   background-position: center;

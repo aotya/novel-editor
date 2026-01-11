@@ -353,6 +353,20 @@ export default function Edit({ novel, initialActs }: EditProps) {
     };
   }, [saveStatus]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    handleResize(); // Check on initial load
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -1082,12 +1096,10 @@ export default function Edit({ novel, initialActs }: EditProps) {
     return null;
   }
 
-  console.log(novel);
-
   return (
     <div className={styles.container}>
       {/* Left Sidebar */}
-      <aside className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarClosed : ''}`}>
+      <aside className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarClosed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
             <h1 className={styles.projectTitle}>{novel?.title}</h1>
@@ -1153,16 +1165,16 @@ export default function Edit({ novel, initialActs }: EditProps) {
           </DndContext>
           
           {acts.length === 0 && (
-             <div style={{padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem'}}>
-               No acts yet. Create one to start writing!
-             </div>
+            <div style={{padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem'}}>
+              No acts yet. Create one to start writing!
+            </div>
           )}
         </nav>
 
         <div className={styles.sidebarFooter}>
           <button className={styles.newChapterButton} onClick={() => handleCreateChapter()}>
             <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
-            New Chapter
+            新規追加
           </button>
         </div>
       </aside>
@@ -1257,9 +1269,6 @@ export default function Edit({ novel, initialActs }: EditProps) {
               {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
             </span>
             <div className={styles.metaDivider}></div>
-            <button className={styles.toolButton} title="Settings">
-              <span className="material-symbols-outlined" style={{fontSize: '24px'}}>settings</span>
-            </button>
           </div>
         </header>
 
@@ -1749,6 +1758,31 @@ export default function Edit({ novel, initialActs }: EditProps) {
           </div>
         </div>
       )}
+
+      {/* Mobile Footer & Overlay */}
+      <div 
+        className={`${styles.mobileOverlay} ${isSidebarOpen ? styles.show : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      <footer className={styles.mobileFooter}>
+        <div className={styles.mobileFooterContent}>
+          <button 
+            className={styles.mobileFooterButton}
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <span className="material-symbols-outlined">format_list_bulleted</span>
+            <span>Episode List</span>
+          </button>
+          <button 
+            className={`${styles.mobileFooterButton} ${styles.mobileFooterButtonPrimary}`}
+            onClick={() => handleCreateChapter()}
+          >
+            <span className="material-symbols-outlined">add</span>
+            <span>Add New Episode</span>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

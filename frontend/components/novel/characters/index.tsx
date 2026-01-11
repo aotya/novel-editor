@@ -56,6 +56,22 @@ export default function CharacterEditor({ novelId }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Handle mobile resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    handleResize(); // Check on initial load
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Form state
   const [formData, setFormData] = useState<Character>(EMPTY_CHARACTER);
@@ -132,6 +148,10 @@ export default function CharacterEditor({ novelId }: Props) {
       setFormData(selectedChar);
       setIsEditing(false);
     }
+
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleNewCharacter = () => {
@@ -140,6 +160,10 @@ export default function CharacterEditor({ novelId }: Props) {
     setActiveCharId('new');
     setFormData(EMPTY_CHARACTER);
     setIsEditing(true);
+
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleInputChange = (field: keyof Character, value: string) => {
@@ -268,22 +292,13 @@ export default function CharacterEditor({ novelId }: Props) {
         <div className={styles.headerRight}>
           <div className={styles.navLinks}>
             <Link className={styles.navLink} href="#">Dashboard</Link>
-            <Link className={styles.navLinkActive} href="#">Characters</Link>
-            <Link className={styles.navLink} href="#">World</Link>
-            <Link className={styles.navLink} href="#">Settings</Link>
           </div>
-          <div 
-            className={styles.avatar} 
-            style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDQUhB4VqxhPJggvs0oDd2EPI__t4LaWwvA5gXc9FHyjifW6EXbp62KyLvhPmQG2ZNtkEykVm-d_cy4GrSoWKGzDE6vHWq2A82D5YcbjzwVuDnXBikgJtEsVZL3O80GYf1YTlZKZNnAYGJIIaSbzPVmHNeIHwxbE7_D7DlNYzlr99nyBzKF-0yGgDGzTgMZydsGptST_J97cX-ihFM5aGLQ09swfTQHR46fgySTgbIbJdIYn4F413lRRpOBSA7R6miOKTCRmvWhpt06")'}}
-            role="img"
-            aria-label="User avatar"
-          ></div>
         </div>
       </header>
 
       <div className={styles.mainWrapper}>
         {/* Sidebar List */}
-        <aside className={styles.sidebar}>
+        <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
           <div className={styles.sidebarHeader}>
             <label className={styles.searchWrapper}>
               <div className={styles.searchInputContainer}>
@@ -739,6 +754,31 @@ export default function CharacterEditor({ novelId }: Props) {
           )}
         </main>
       </div>
+
+      {/* Mobile Footer & Overlay */}
+      <div 
+        className={`${styles.mobileOverlay} ${isSidebarOpen ? styles.show : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      <footer className={styles.mobileFooter}>
+        <div className={styles.mobileFooterContent}>
+          <button 
+            className={styles.mobileFooterButton}
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <span className="material-symbols-outlined">group</span>
+            <span>Character List</span>
+          </button>
+          <button 
+            className={`${styles.mobileFooterButton} ${styles.mobileFooterButtonPrimary}`}
+            onClick={handleNewCharacter}
+          >
+            <span className="material-symbols-outlined">person_add</span>
+            <span>New Character</span>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
