@@ -167,3 +167,5 @@ frontend/.env*
 frontend/.vercel
 *.tsbuildinfo
 frontend/next-env.d.ts
+
+.env
