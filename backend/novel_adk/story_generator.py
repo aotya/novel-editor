@@ -3,7 +3,7 @@ from .base import Agent
 import json
 
 # モデル名を環境変数から取得（デフォルトは gemini-2.5-flash）
-model_name = os.getenv("GENERATIVE_MODEL", "gemini-2.5-flash")
+model_name = os.getenv("GENERATIVE_MODEL_3", "gemini-2.5-flash")
 
 story_generator_agent = Agent(
     model=model_name,

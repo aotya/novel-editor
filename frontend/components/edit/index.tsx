@@ -386,7 +386,18 @@ export default function Edit({ novel, initialActs }: EditProps) {
         const text = event.clipboardData?.getData('text/plain');
         if (text) {
           event.preventDefault();
-          view.dispatch(view.state.tr.insertText(text));
+          
+          // 改行コードを正規化 (CRLF/CR -> LF)
+          // 各行の末尾の空白を削除し、3つ以上の連続する改行を2つに制限
+          const cleanedText = text
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map(line => line.trimEnd())
+            .join('\n')
+            .replace(/\n{3,}/g, '\n\n');
+
+          view.dispatch(view.state.tr.insertText(cleanedText));
           return true;
         }
         return false;
@@ -1406,10 +1417,16 @@ export default function Edit({ novel, initialActs }: EditProps) {
                                                 </div>
                                             ))}
                                             {suggestions.length === 0 && (
-                                                <div style={{textAlign: 'center', color: '#64748b', padding: '2rem'}}>
+                                                <div style={{textAlign: 'center', color: '#64748b', padding: '2rem', margin: '0 auto'}}>
                                                     <span className="material-symbols-outlined" style={{fontSize: '48px', color: '#cbd5e1', marginBottom: '1rem'}}>check_circle</span>
-                                                    <p>修正提案はありません。<br/>素晴らしい文章です！</p>
+                                                    <p style={{marginBottom: '30px'}}>修正提案はありません。<br/>素晴らしい文章です！</p>
+
+                                                    <button className={styles.startProofreadButton} onClick={runProofreading}>
+                                                        <span className="material-symbols-outlined">play_arrow</span>
+                                                        再度校正する
+                                                    </button>
                                                 </div>
+                                                
                                             )}
                                         </div>
                                         
