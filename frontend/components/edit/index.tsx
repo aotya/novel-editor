@@ -27,6 +27,12 @@ import styles from './edit.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { ActItem } from './ActItem';
 import { AiHighlight } from './extensions/AiHighlight';
+import { AiPanel } from './AiPanel';
+import { WriteSettingsModal } from './WriteSettingsModal';
+import { Toolbar } from './Toolbar';
+import { Sidebar } from './Sidebar';
+import { EditorPaper } from './EditorPaper';
+import { MobileFooter } from './MobileFooter';
 import { 
   updateChapterContent, 
   updateChapterTitle, 
@@ -1110,696 +1116,109 @@ export default function Edit({ novel, initialActs }: EditProps) {
   return (
     <div className={styles.container}>
       {/* Left Sidebar */}
-      <aside className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarClosed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
-        <div className={styles.sidebarHeader}>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-            <h1 className={styles.projectTitle}>{novel?.title}</h1>
-            <button 
-              onClick={() => setIsSidebarOpen(false)}
-              className={styles.iconButton}
-              title="Close Sidebar"
-            >
-              <span className="material-symbols-outlined" style={{fontSize: '20px'}}>dock_to_left</span>
-            </button>
-          </div>
-          <Link 
-            href={`/novel/${novel.id}`} 
-            className={styles.backLink}
-            onClick={(e) => handleLinkClick(e, `/novel/${novel.id}`)}
-          >
-            <span className="material-symbols-outlined" style={{fontSize: '16px'}}>arrow_back</span>
-            Back to Dashboard
-          </Link>
-        </div>
-        
-
-        <div className={styles.actionButtonsGrid}>
-          <button className={styles.actionButton} onClick={handleCreateAct}>
-            <span className={`material-symbols-outlined ${styles.actionButtonIcon}`}>create_new_folder</span>
-            <span>New Act</span>
-          </button>
-          <button 
-            className={styles.actionButton} 
-            onClick={() => setIsReordering(!isReordering)}
-            style={isReordering ? { borderColor: 'var(--primary)', color: 'var(--primary)', backgroundColor: '#f3f4f6' } : {}}
-          >
-            <span 
-              className={`material-symbols-outlined ${styles.actionButtonIcon}`}
-              style={isReordering ? { color: 'var(--primary)' } : {}}
-            >
-              {isReordering ? 'check' : 'swap_vert'}
-            </span>
-            <span>{isReordering ? 'Done' : 'Reorder'}</span>
-          </button>
-        </div>
-
-        <nav className={styles.navigation}>
-          <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            {acts.map(act => (
-              <ActItem
-                key={act.id}
-                act={act}
-                activeChapterId={activeChapterId}
-                isReordering={isReordering}
-                onChapterSelect={handleChapterSelect}
-                onDeleteChapter={handleDeleteChapter}
-                onRenameAct={handleRenameAct}
-                onDeleteAct={handleDeleteAct}
-                onCreateChapter={handleCreateChapter}
-              />
-            ))}
-          </DndContext>
-          
-          {acts.length === 0 && (
-            <div style={{padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem'}}>
-              No acts yet. Create one to start writing!
-            </div>
-          )}
-        </nav>
-
-        <div className={styles.sidebarFooter}>
-          <button className={styles.newChapterButton} onClick={() => handleCreateChapter()}>
-            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>add</span>
-            新規追加
-          </button>
-        </div>
-      </aside>
+      <Sidebar 
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        novel={novel}
+        handleLinkClick={handleLinkClick}
+        handleCreateAct={handleCreateAct}
+        isReordering={isReordering}
+        setIsReordering={setIsReordering}
+        sensors={sensors}
+        handleDragOver={handleDragOver}
+        handleDragEnd={handleDragEnd}
+        acts={acts}
+        activeChapterId={activeChapterId}
+        handleChapterSelect={handleChapterSelect}
+        handleDeleteChapter={handleDeleteChapter}
+        handleRenameAct={handleRenameAct}
+        handleDeleteAct={handleDeleteAct}
+        handleCreateChapter={handleCreateChapter}
+      />
 
       {/* Main Editor Area */}
       <main className={styles.main}>
         {/* Top Toolbar */}
-        <header className={styles.toolbar}>
-          <div className={styles.toolGroup}>
-            {!isSidebarOpen && (
-              <div className={styles.toolSection}>
-                <button 
-                  onClick={() => setIsSidebarOpen(true)}
-                  className={styles.toolButton}
-                  title="Open Sidebar"
-                >
-                  <span className="material-symbols-outlined" style={{fontSize: '20px'}}>dock_to_right</span>
-                </button>
-              </div>
-            )}
-            
-            <div className={styles.toolSection}>
-              <button 
-                onClick={() => insertText('……')}
-                className={styles.toolButton}
-                title="Insert Ellipsis"
-              >
-                <span style={{fontSize: '14px', fontWeight: 'bold'}}>……</span>
-              </button>
-              <button 
-                onClick={() => insertText('――')}
-                className={styles.toolButton}
-                title="Insert Dash"
-              >
-                 <span style={{fontSize: '14px', fontWeight: 'bold'}}>――</span>
-              </button>
-            </div>
+        <Toolbar 
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          insertText={insertText}
+          wrapSelection={wrapSelection}
+          insertRuby={insertRuby}
+          isAutoIndentEnabled={isAutoIndentEnabled}
+          setIsAutoIndentEnabled={setIsAutoIndentEnabled}
+          isAiMode={isAiMode}
+          toggleAiMode={toggleAiMode}
+          handleSave={handleSave}
+          saveStatus={saveStatus}
+        />
 
-            <div className={styles.toolSection}>
-              <button 
-                onClick={() => wrapSelection('「', '」')}
-                className={styles.toolButton}
-                title="Wrap in Brackets"
-              >
-                <span style={{fontSize: '14px', fontWeight: 'bold'}}>「」</span>
-              </button>
-              <button 
-                 onClick={() => wrapSelection('(', ')')}
-                 className={styles.toolButton}
-                 title="Wrap in Parentheses"
-              >
-                 <span style={{fontSize: '14px', fontWeight: 'bold'}}>（）</span>
-              </button>
-              <button 
-                 onClick={insertRuby}
-                 className={styles.toolButton}
-                 title="Insert Ruby (|Text《...》)"
-              >
-                <span style={{fontSize: '12px', fontWeight: 'bold'}}>ルビ</span>
-              </button>
-              <button 
-                 onClick={() => setIsAutoIndentEnabled(!isAutoIndentEnabled)}
-                 className={`${styles.toolButton} ${isAutoIndentEnabled ? styles.toolButtonActive : ''}`}
-                 title={isAutoIndentEnabled ? "Auto Indent ON (Insert space on Enter)" : "Auto Indent OFF"}
-              >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_indent_increase</span>
-              </button>
-              
-              <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 8px' }}></div>
-              
-              <button 
-                 onClick={toggleAiMode}
-                 className={`${styles.toolButton} ${isAiMode ? styles.toolButtonActive : ''}`}
-                 title="AI Correction Mode"
-              >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>auto_awesome</span>
-                {isAiMode && <span style={{fontSize: '12px', fontWeight: 'bold', marginLeft: '4px'}}>ON</span>}
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.metaInfo}>
-            <button 
-              className={styles.toolButton} 
-              title="Save"
-              onClick={handleSave}
-            >
-              <span className="material-symbols-outlined" style={{fontSize: '20px'}}>save</span>
-            </button>
-            <span className={styles.saveStatus}>
-              <span className={styles.statusDot} style={{backgroundColor: saveStatus === 'unsaved' ? '#fbbf24' : '#34d399'}}></span>
-              {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
-            </span>
-            <div className={styles.metaDivider}></div>
-          </div>
-        </header>
+        {/* Editor Canvas & AI Panel */}
 
         {/* Editor Canvas & AI Panel */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            <div className={styles.editorContainer}>
-              <div 
-                className={styles.editorPaper} 
-                onClick={() => editor.chain().focus().run()}
-              >
-                {activeChapter ? (
-                  <div className={styles.paperContent} onClick={(e) => e.stopPropagation()}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                        <input 
-                          className={styles.chapterTitleInput} 
-                          placeholder="Chapter Title" 
-                          type="text" 
-                          value={chapterTitle}
-                          onChange={(e) => {
-                              setChapterTitle(e.target.value);
-                              if (saveStatus !== 'unsaved') setSaveStatus('unsaved');
-                          }}
-                        />
-                        {isAiMode && (
-                            <div className={styles.aiModeIndicator}>
-                                <span className="material-symbols-outlined" style={{fontSize: '18px'}}>auto_awesome</span>
-                                <span className={styles.aiModeText}>AI添削モード ON</span>
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className={styles.chapterMeta}>
-                      <span className={styles.metaItem}>
-                        <span className="material-symbols-outlined" style={{fontSize: '16px'}}>schedule</span>
-                        {activeChapter?.updated_at ? activeChapter.updated_at.split('T')[0] : ''}
-                      </span>
-                      <span className={styles.metaItem}>
-                        <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
-                        {currentWordsCount} words
-                      </span>
-                    </div>
-
-                    <EditorContent editor={editor} />
-                  </div>
-                ) : (
-                   <div className={styles.paperContent} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999'}}>
-                      <p>Select a chapter to start editing</p>
-                   </div>
-                )}
-              </div>
-            </div>
+            <EditorPaper 
+              activeChapter={activeChapter}
+              chapterTitle={chapterTitle}
+              setChapterTitle={setChapterTitle}
+              saveStatus={saveStatus}
+              setSaveStatus={setSaveStatus}
+              isAiMode={isAiMode}
+              currentWordsCount={currentWordsCount}
+              editor={editor}
+            />
 
             {/* AI Suggestion Panel */}
             {isAiMode && (
-                <aside className={styles.suggestionPanel}>
-                    {/* Tabs */}
-                    <div className={styles.aiTabs}>
-                        <div 
-                            className={`${styles.aiTab} ${aiActiveTab === 'proofread' ? styles.aiTabActive : ''}`}
-                            onClick={() => setAiActiveTab('proofread')}
-                        >
-                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>search</span>
-                            校正
-                        </div>
-                        <div 
-                            className={`${styles.aiTab} ${aiActiveTab === 'edit' ? styles.aiTabActive : ''}`}
-                            onClick={() => setAiActiveTab('edit')}
-                        >
-                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>auto_fix</span>
-                            編集
-                        </div>
-                        <div 
-                            className={`${styles.aiTab} ${aiActiveTab === 'write' ? styles.aiTabActive : ''}`}
-                            onClick={() => setAiActiveTab('write')}
-                        >
-                            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit</span>
-                            執筆
-                        </div>
-                    </div>
-
-                    <div className={styles.aiTabContent}>
-                        {aiActiveTab === 'proofread' && (
-                            <>
-                                {isAiLoading ? (
-                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem', color: '#64748b'}}>
-                                        <span className="material-symbols-outlined" style={{animation: 'spin 1s linear infinite', fontSize: '32px'}}>sync</span>
-                                        <span>AIが文章を分析中...</span>
-                                    </div>
-                                ) : !hasProofreadRun ? (
-                                    <div className={styles.emptyStateContainer}>
-                                        <span className={`material-symbols-outlined ${styles.emptyStateIcon}`}>find_in_page</span>
-                                        <div>
-                                            <p style={{fontWeight: 'bold', color: '#334155', marginBottom: '0.5rem'}}>AI校正を実行</p>
-                                            <p style={{fontSize: '0.9rem'}}>誤字脱字や文法ミス、表現の改善点を<br/>AIがチェックします。</p>
-                                        </div>
-                                        <button className={styles.startProofreadButton} onClick={runProofreading}>
-                                            <span className="material-symbols-outlined">play_arrow</span>
-                                            校正を開始する
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        {/* Summary Box */}
-                                        <div className={styles.summaryBox}>
-                                            <span className={`material-symbols-outlined ${styles.summaryIcon}`}>info</span>
-                                            <div className={styles.summaryContent}>
-                                                <span className={styles.summaryTitle}>{suggestions.length}件の指摘があります</span>
-                                                <span className={styles.summaryDesc}>誤字脱字・文法ミスをチェックしました。</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Suggestions List */}
-                                        <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1}}>
-                                            {suggestions.map(suggestion => (
-                                                <div key={suggestion.id} className={styles.suggestionCard}>
-                                                    <div className={styles.suggestionHeader}>
-                                                        <span className={`${styles.suggestionBadge} ${
-                                                            suggestion.type === 'typo' ? styles.badgeTypo : 
-                                                            suggestion.type === 'grammar' ? styles.badgeGrammar : 
-                                                            styles.badgeExpression
-                                                        }`}>
-                                                            {suggestion.label}
-                                                        </span>
-                                                    </div>
-                                                    <div className={styles.suggestionContent}>
-                                                        <span className={styles.originalText}>{suggestion.originalText}</span>
-                                                        <span className="material-symbols-outlined" style={{fontSize: '14px', color: '#cbd5e1'}}>arrow_forward</span>
-                                                        <span className={styles.suggestedText}>{suggestion.suggestedText}</span>
-                                                    </div>
-                                                    <p className={styles.suggestionDescription}>{suggestion.description}</p>
-                                                    <div className={styles.suggestionActions}>
-                                                        <button className={styles.ignoreButton} onClick={() => handleIgnoreSuggestion(suggestion)}>無視</button>
-                                                        <button className={styles.acceptButton} onClick={() => handleAcceptSuggestion(suggestion)}>修正</button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {suggestions.length === 0 && (
-                                                <div style={{textAlign: 'center', color: '#64748b', padding: '2rem', margin: '0 auto'}}>
-                                                    <span className="material-symbols-outlined" style={{fontSize: '48px', color: '#cbd5e1', marginBottom: '1rem'}}>check_circle</span>
-                                                    <p style={{marginBottom: '30px'}}>修正提案はありません。<br/>素晴らしい文章です！</p>
-
-                                                    <button className={styles.startProofreadButton} onClick={runProofreading}>
-                                                        <span className="material-symbols-outlined">play_arrow</span>
-                                                        再度校正する
-                                                    </button>
-                                                </div>
-                                                
-                                            )}
-                                        </div>
-                                        
-                                        {/* Actions Footer - Only show if suggestions exist */}
-                                        {suggestions.length > 0 && (
-                                            <button className={styles.fixAllButton} onClick={handleAcceptAllSuggestions}>
-                                                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>done_all</span>
-                                                すべて修正する
-                                            </button>
-                                        )}
-                                    </>
-                                )}
-                            </>
-                        )}
-                        
-                        {aiActiveTab === 'edit' && (
-                             <div className={styles.editTabContainer}>
-                                {isEditLoading ? (
-                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem', color: '#64748b'}}>
-                                        <span className="material-symbols-outlined" style={{animation: 'spin 1s linear infinite', fontSize: '32px'}}>auto_awesome</span>
-                                        <span>AIが修正案を作成中...</span>
-                                    </div>
-                                ) : !editResult ? (
-                                    <>
-                                        {/* Target Range Selector */}
-                                        <div>
-                                            <div className={styles.sectionLabel}>対象範囲</div>
-                                            <div className={styles.rangeSelector}>
-                                                <div 
-                                                    className={`${styles.rangeOption} ${editTargetRange === 'selection' ? styles.rangeOptionActive : ''}`}
-                                                    onClick={() => setEditTargetRange('selection')}
-                                                >
-                                                    選択範囲 ({selectionLength}文字)
-                                                </div>
-                                                <div 
-                                                    className={`${styles.rangeOption} ${editTargetRange === 'all' ? styles.rangeOptionActive : ''}`}
-                                                    onClick={() => setEditTargetRange('all')}
-                                                >
-                                                    全体
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Quick Instructions */}
-                                        <div>
-                                            <div className={styles.sectionLabel}>クイック指示</div>
-                                            <div className={styles.quickInstructionGrid}>
-                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("表現をリッチに")}>
-                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#8b5cf6'}}>auto_awesome</span>
-                                                    表現をリッチに
-                                                </button>
-                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("感情を強める")}>
-                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#ec4899'}}>favorite</span>
-                                                    感情を強める
-                                                </button>
-                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("簡潔にする")}>
-                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#10b981'}}>short_text</span>
-                                                    簡潔にする
-                                                </button>
-                                                <button className={styles.quickInstructionButton} onClick={() => handleEditQuickInstruction("緊迫感を出す")}>
-                                                    <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#f59e0b'}}>warning</span>
-                                                    緊迫感を出す
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Instruction Input */}
-                                        <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
-                                            <div className={styles.sectionLabel}>指示内容</div>
-                                            <textarea 
-                                                className={styles.instructionTextarea}
-                                                placeholder="例：○○という設定を踏まえて書き直して..."
-                                                value={editInstruction}
-                                                onChange={(e) => setEditInstruction(e.target.value)}
-                                            />
-                                        </div>
-
-                                        {/* Generate Button */}
-                                        <button 
-                                            className={`${styles.generateButton} ${(!editInstruction || (editTargetRange === 'selection' && selectionLength === 0)) ? styles.generateButtonDisabled : ''}`}
-                                            onClick={handleGenerateEditSuggestion}
-                                            disabled={!editInstruction || (editTargetRange === 'selection' && selectionLength === 0)}
-                                        >
-                                            <span className="material-symbols-outlined">auto_fix</span>
-                                            修正案を作成する
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        {/* Result View */}
-                                        <div className={styles.resultHeader}>
-                                            <button className={styles.backButton} onClick={() => setEditResult(null)}>
-                                                <span className="material-symbols-outlined">arrow_back</span>
-                                            </button>
-                                            <span>生成結果の確認</span>
-                                        </div>
-
-                                        <div className={styles.editResultCard}>
-                                            <div className={styles.editResultHeader}>
-                                                <span className="material-symbols-outlined">auto_awesome</span>
-                                                AIからの提案
-                                            </div>
-                                            
-                                            <div className={styles.diffSection}>
-                                                <span className={styles.diffLabel}>変更前:</span>
-                                                <div className={`${styles.diffContent} ${styles.diffContentOld}`}>
-                                                    {editResult.original.length > 100 ? editResult.original.substring(0, 100) + "..." : editResult.original}
-                                                </div>
-                                            </div>
-
-                                            <div className={styles.diffSection}>
-                                                <span className={styles.diffLabel}>変更後:</span>
-                                                <div className={`${styles.diffContent} ${styles.diffContentNew}`}>
-                                                    {editResult.suggestion}
-                                                </div>
-                                            </div>
-
-                                            <div className={styles.reasonBox}>
-                                                <div className={styles.reasonHeader}>
-                                                    <span className="material-symbols-outlined" style={{fontSize: '16px', color: '#fbbf24'}}>lightbulb</span>
-                                                    修正の意図
-                                                </div>
-                                                <p className={styles.reasonText}>
-                                                    {editResult.reason}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className={styles.resultFooter}>
-                                            <button className={styles.regenerateButton} onClick={handleGenerateEditSuggestion}>
-                                                <span className="material-symbols-outlined">refresh</span>
-                                                再生成
-                                            </button>
-                                            <button className={styles.applyButton} onClick={handleApplyEdit}>
-                                                <span className="material-symbols-outlined">check</span>
-                                                採用して反映
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                             </div>
-                        )}
-                        
-                        {aiActiveTab === 'write' && (
-                            <div className={styles.aiWriteContainer}>
-                                {/* AI Writing Assistant Card */}
-                                <div className={styles.assistantCard}>
-                                    <div className={styles.assistantHeader}>
-                                        <span className={`material-symbols-outlined ${styles.assistantIcon}`}>auto_fix</span>
-                                        <span className={styles.assistantTitle}>AI執筆アシスタント</span>
-                                    </div>
-                                    <p className={styles.assistantSubtitle}>
-                                        設定資料やプロットを読み込み、短編小説を自動生成します。
-                                    </p>
-                                    <button 
-                                        className={styles.generateNovelsButton}
-                                        onClick={() => setIsWriteModalOpen(true)}
-                                    >
-                                        <span className="material-symbols-outlined" style={{fontSize: '20px'}}>edit</span>
-                                        短編小説を生成する
-                                    </button>
-                                </div>
-
-                                {/* Chat Section */}
-                                <div>
-                                    <div className={styles.chatSectionTitle}>AIとの壁打ちチャット</div>
-                                    <div className={styles.chatContainer}>
-                                        <div className={styles.chatBubble}>
-                                            こんにちは。短編のアイデア出しですか？それとも執筆を開始しますか？
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Chat Input */}
-                                <div className={styles.chatInputContainer}>
-                                    <textarea 
-                                        className={styles.chatTextarea}
-                                        placeholder="AIに指示を出す..."
-                                        value={writeChatInput}
-                                        onChange={(e) => setWriteChatInput(e.target.value)}
-                                    />
-                                    <button className={styles.chatSendButton}>
-                                        <span className="material-symbols-outlined" style={{fontSize: '20px'}}>play_arrow</span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </aside>
+                <AiPanel 
+                  activeTab={aiActiveTab}
+                  setActiveTab={setAiActiveTab}
+                  // Proofread
+                  isAiLoading={isAiLoading}
+                  hasProofreadRun={hasProofreadRun}
+                  suggestions={suggestions}
+                  runProofreading={runProofreading}
+                  handleIgnoreSuggestion={handleIgnoreSuggestion}
+                  handleAcceptSuggestion={handleAcceptSuggestion}
+                  handleAcceptAllSuggestions={handleAcceptAllSuggestions}
+                  // Edit
+                  isEditLoading={isEditLoading}
+                  editResult={editResult}
+                  setEditResult={setEditResult}
+                  editTargetRange={editTargetRange}
+                  setEditTargetRange={setEditTargetRange}
+                  selectionLength={selectionLength}
+                  editInstruction={editInstruction}
+                  setEditInstruction={setEditInstruction}
+                  handleEditQuickInstruction={handleEditQuickInstruction}
+                  handleGenerateEditSuggestion={handleGenerateEditSuggestion}
+                  handleApplyEdit={handleApplyEdit}
+                  // Write
+                  setIsWriteModalOpen={setIsWriteModalOpen}
+                  writeChatInput={writeChatInput}
+                  setWriteChatInput={setWriteChatInput}
+                />
             )}
         </div>
       </main>
 
       {/* Write Settings Modal */}
-      {isWriteModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setIsWriteModalOpen(false)}>
-          <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTitleWrapper}>
-                <span className={`material-symbols-outlined ${styles.modalHeaderIcon}`}>auto_fix</span>
-                <span className={styles.modalTitle}>短編生成の設定</span>
-              </div>
-              <button className={styles.modalCloseButton} onClick={() => setIsWriteModalOpen(false)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <div className={styles.modalContent}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>タイトル</label>
-                <div className={styles.staticText}>
-                  {novel?.title || "未設定"}
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>あらすじ</label>
-                <div className={styles.staticTextarea}>
-                  {novel?.synopsis || "未設定"}
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>追加の指示</label>
-                <textarea 
-                  className={styles.formTextarea} 
-                  placeholder="例：今回はアクションシーンを多めに、緊迫感のある描写を意識して書いてください。"
-                  value={writeSettings.instructions}
-                  onChange={(e) => setWriteSettings({...writeSettings, instructions: e.target.value})}
-                />
-              </div>
-
-              <div className={styles.settingsSection}>
-                <div className={styles.settingsSectionTitle}>参照データの設定</div>
-                
-                <div className={styles.settingItem}>
-                  <div className={styles.settingItemLeft}>
-                    <div className={styles.settingItemIcon}>
-                      <span className="material-symbols-outlined">person</span>
-                    </div>
-                    <span className={styles.settingItemLabel}>キャラクター設定の読み取り</span>
-                  </div>
-                  <label className={styles.switch}>
-                    <input 
-                      type="checkbox" 
-                      checked={writeSettings.useCharacters}
-                      onChange={(e) => setWriteSettings({...writeSettings, useCharacters: e.target.checked})}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
-                </div>
-
-                <div className={styles.settingItem}>
-                  <div className={styles.settingItemLeft}>
-                    <div className={`${styles.settingItemIcon} ${styles.settingItemIconPurple}`}>
-                      <span className="material-symbols-outlined">description</span>
-                    </div>
-                    <span className={styles.settingItemLabel}>プロットの読み取り</span>
-                  </div>
-                  <label className={styles.switch}>
-                    <input 
-                      type="checkbox" 
-                      checked={writeSettings.usePlot}
-                      onChange={(e) => setWriteSettings({...writeSettings, usePlot: e.target.checked})}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
-                </div>
-
-                <div className={styles.settingItem}>
-                  <div className={styles.settingItemLeft}>
-                    <div className={`${styles.settingItemIcon} ${styles.settingItemIconGray}`}>
-                      <span className="material-symbols-outlined">account_tree</span>
-                    </div>
-                    <span className={styles.settingItemLabel}>相関図（関係性）の読み取り</span>
-                  </div>
-                  <label className={styles.switch}>
-                    <input 
-                      type="checkbox" 
-                      checked={writeSettings.useRelationships}
-                      onChange={(e) => setWriteSettings({...writeSettings, useRelationships: e.target.checked})}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
-                </div>
-
-                <div className={styles.settingItem}>
-                  <div className={styles.settingItemLeft}>
-                    <div className={`${styles.settingItemIcon} ${styles.settingItemIconPurple}`}>
-                      <span className="material-symbols-outlined">history_edu</span>
-                    </div>
-                    <span className={styles.settingItemLabel}>現在の内容をベースにする</span>
-                  </div>
-                  <label className={styles.switch}>
-                    <input 
-                      type="checkbox" 
-                      checked={writeSettings.useExistingContent}
-                      onChange={(e) => setWriteSettings({...writeSettings, useExistingContent: e.target.checked})}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
-                </div>
-              </div>
-
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} style={{display: 'flex', alignItems: 'center', gap: '0.25rem'}}>
-                    <span className="material-symbols-outlined" style={{fontSize: '18px'}}>bar_chart</span>
-                    希望文字数
-                  </label>
-                  <input 
-                    type="text" 
-                    className={styles.formInput} 
-                    value={writeSettings.wordCount}
-                    onChange={(e) => setWriteSettings({...writeSettings, wordCount: e.target.value})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} style={{display: 'flex', alignItems: 'center', gap: '0.25rem'}}>
-                    <span className="material-symbols-outlined" style={{fontSize: '18px'}}>visibility</span>
-                    視点
-                  </label>
-                  <input 
-                    type="text" 
-                    className={styles.formInput} 
-                    value={writeSettings.pov}
-                    onChange={(e) => setWriteSettings({...writeSettings, pov: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.modalFooter}>
-              <button className={styles.cancelButton} onClick={() => setIsWriteModalOpen(false)} disabled={isGeneratingStory}>キャンセル</button>
-              <button 
-                className={styles.executeButton} 
-                onClick={handleGenerateStoryExecute}
-                disabled={isGeneratingStory}
-              >
-                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>
-                  {isGeneratingStory ? 'sync' : 'edit'}
-                </span>
-                {isGeneratingStory ? '生成中...' : '生成を実行'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WriteSettingsModal 
+        isOpen={isWriteModalOpen}
+        onClose={() => setIsWriteModalOpen(false)}
+        novel={novel}
+        writeSettings={writeSettings}
+        setWriteSettings={setWriteSettings}
+        isGeneratingStory={isGeneratingStory}
+        onExecute={handleGenerateStoryExecute}
+      />
 
       {/* Mobile Footer & Overlay */}
-      <div 
-        className={`${styles.mobileOverlay} ${isSidebarOpen ? styles.show : ''}`} 
-        onClick={() => setIsSidebarOpen(false)}
+      <MobileFooter 
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        handleCreateChapter={handleCreateChapter}
       />
-      
-      <footer className={styles.mobileFooter}>
-        <div className={styles.mobileFooterContent}>
-          <button 
-            className={styles.mobileFooterButton}
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <span className="material-symbols-outlined">format_list_bulleted</span>
-            <span>Episode List</span>
-          </button>
-          <button 
-            className={`${styles.mobileFooterButton} ${styles.mobileFooterButtonPrimary}`}
-            onClick={() => handleCreateChapter()}
-          >
-            <span className="material-symbols-outlined">add</span>
-            <span>Add New Episode</span>
-          </button>
-        </div>
-      </footer>
     </div>
   );
 }
