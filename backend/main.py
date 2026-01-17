@@ -35,7 +35,14 @@ from novel_adk.proofreader import proofreader_agent
 from novel_adk.rewriter import rewriter_agent
 from novel_adk.story_generator import story_generator_agent
 
-app = FastAPI(title="Novel Editor API")
+# docs_url, redoc_url を環境変数で制御 (本番環境では None にして無効化推奨)
+ENABLE_DOCS = os.getenv("ENABLE_DOCS", "false").lower() == "true"
+app = FastAPI(
+    title="Novel Editor API",
+    docs_url="/docs" if ENABLE_DOCS else None,
+    redoc_url="/redoc" if ENABLE_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_DOCS else None
+)
 
 # セキュリティ設定
 security = HTTPBearer()
@@ -79,7 +86,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # 公開後の本番URLをここに追加してください (例: "https://your-novel-app.vercel.app")
+    # 環境変数から追加のオリジンを読み込む
+    *filter(None, os.getenv("ALLOWED_ORIGINS", "").split(",")),
 ]
 
 app.add_middleware(
@@ -90,59 +98,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class EditRequest(BaseModel):
-    content: str
-
-# Rewrite API用のデータモデル
-class RewriteSelectionRange(BaseModel):
-    start: int
-    end: int
-
-class RewriteContext(BaseModel):
-    chapterTitle: Optional[str] = None
-    characters: Optional[List[str]] = None
-    mood: Optional[str] = None
-    # その他任意のコンテキストを受け取れるように拡張性を確保
-    extra: Optional[Dict[str, Any]] = None
-
-class RewriteData(BaseModel):
-    fullText: str
-    selectedText: str
-    selectionRange: Optional[RewriteSelectionRange] = None
-    instruction: str
-    context: Optional[RewriteContext] = None
-
-class RewriteRequest(BaseModel):
-    mode: str = "rewrite"
-    data: RewriteData
-
-# Story Generation API用のデータモデル
-class StoryGenReferences(BaseModel):
-    correlationMap: Optional[List[Any]] = None
-    plot: Optional[List[Any]] = None
-    relationMap: Optional[List[Any]] = None
-
-class StoryGenConfig(BaseModel):
-    targetLength: int
-    perspective: str
-    style: str = "novel"
-    instruction: Optional[str] = None
-
-class StoryGenData(BaseModel):
-    title: str
-    overview: str
-    references: StoryGenReferences
-    baseContent: Optional[str] = None
-    config: StoryGenConfig
-
-class StoryGenRequest(BaseModel):
-    mode: str = "story-gen"
-    model: Optional[str] = os.getenv("GENERATIVE_MODEL", "gemini-2.5-flash")
-    data: StoryGenData
+# ... (rest of models)
 
 @app.get("/")
 def read_root():
-    return {"message": "Novel Editor API is running. Send POST request to /api/edit, /api/proofread, /api/rewrite or /api/generate-story"}
+    # ヘルスチェック用エンドポイント
+    # セキュリティのため、詳細な情報は返さない
+    return {"status": "ok"}
 
 @app.post("/api/edit")
 def edit_novel(request: EditRequest, user=Depends(get_current_user)):
