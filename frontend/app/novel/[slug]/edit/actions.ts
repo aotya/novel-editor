@@ -191,8 +191,9 @@ export async function updateChapterOrder(novelId: string, updates: { id: string,
 export async function proofreadContent(content: string) {
   try {
     const session = await getRequiredSession()
+    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
 
-    const response = await fetch("http://localhost:8000/api/proofread", {
+    const response = await fetch(`${backendUrl}/api/proofread`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -203,7 +204,8 @@ export async function proofreadContent(content: string) {
     });
 
     if (!response.ok) {
-      throw new Error(`API call failed: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -224,6 +226,7 @@ export async function rewriteContent(
 ) {
   try {
     const session = await getRequiredSession()
+    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
 
     const payload = {
         mode: "rewrite",
@@ -236,7 +239,7 @@ export async function rewriteContent(
         }
     };
 
-    const response = await fetch("http://localhost:8000/api/rewrite", {
+    const response = await fetch(`${backendUrl}/api/rewrite`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -263,8 +266,9 @@ export async function rewriteContent(
 export async function generateStory(payload: any) {
   try {
     const session = await getRequiredSession();
+    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
 
-    const response = await fetch("http://localhost:8000/api/generate-story", {
+    const response = await fetch(`${backendUrl}/api/generate-story`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

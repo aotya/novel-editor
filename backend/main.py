@@ -8,6 +8,7 @@ import os
 import json
 import jwt
 import requests
+import re
 from dotenv import load_dotenv
 
 # 環境変数の読み込み
@@ -211,24 +212,24 @@ def generate_story(request: StoryGenRequest, user=Depends(get_current_user)):
 
 def parse_json_response(raw_response: str):
     """
-    AIからの応答（文字列）をJSONとしてパースするヘルパー関数
+    AIからの応答（文字列）からJSON部分を抽出してパースするヘルパー関数
     """
-    # 簡単なクリーニング
-    cleaned_response = raw_response.strip()
-    if cleaned_response.startswith("```json"):
-        cleaned_response = cleaned_response[7:]
-    if cleaned_response.startswith("```"):
-        cleaned_response = cleaned_response[3:]
-    if cleaned_response.endswith("```"):
-        cleaned_response = cleaned_response[:-3]
-    
+    # 正規表現で ```json { ... } ``` または単に { ... } の部分を抽出
+    json_match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', raw_response)
+    if json_match:
+        cleaned_response = json_match.group(1)
+    else:
+        cleaned_response = raw_response.strip()
+
     try:
         json_response = json.loads(cleaned_response)
         return json_response
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
         print(f"Failed to parse JSON: {raw_response}")
-        raise HTTPException(status_code=500, detail="AI response was not valid JSON")
+        print(f"Error details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI response was not valid JSON: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
