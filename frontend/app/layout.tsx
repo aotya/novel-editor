@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Novel Editor",
   description: "Novel Editor",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

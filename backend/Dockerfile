@@ -4,7 +4,6 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8080
 
 # Set work directory
 WORKDIR /app
@@ -26,8 +25,6 @@ RUN chown -R appuser:appgroup /app
 # Switch to non-root user
 USER appuser
 
-# Expose port (Cloud Run uses PORT environment variable)
-EXPOSE 8080
-
 # Run the application
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+# Use the PORT environment variable provided by Cloud Run
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
