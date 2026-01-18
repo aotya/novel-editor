@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Supabaseの設定
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
 if not SUPABASE_URL:
     # フォールバック（プロジェクトURLが設定されていない場合）
     print("WARNING: NEXT_PUBLIC_SUPABASE_URL is not set!")
