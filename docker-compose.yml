@@ -8,9 +8,9 @@ services:
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - BACKEND_API_URL=${BACKEND_API_URL:-http://backend:8080}
     depends_on:
       - backend
@@ -21,8 +21,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - GENERATIVE_MODEL=${GENERATIVE_MODEL}
       - PORT=8080

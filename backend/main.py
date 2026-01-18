@@ -12,9 +12,7 @@ import re
 from dotenv import load_dotenv
 
 # 環境変数の読み込み
-# novel_adk/.env も読み込むように設定
 load_dotenv()
-load_dotenv(os.path.join(os.path.dirname(__file__), "novel_adk", ".env"))
 
 # Supabaseの設定
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
