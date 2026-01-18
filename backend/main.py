@@ -156,7 +156,8 @@ try:
         try:
             # AIへのプロンプトを作成
             # JSON形式でデータを渡すことで構造的に理解させる
-            prompt_data = request.data.model_dump()
+            # request.data は辞書型なのでそのまま使用する (.model_dump()は不要)
+            prompt_data = request.data
             prompt = json.dumps(prompt_data, ensure_ascii=False, indent=2)
             
             # エージェントを使って応答を生成
@@ -164,8 +165,12 @@ try:
             
             # JSONクリーニングとパース
             return parse_json_response(raw_response)
-    
+
         except Exception as e:
+            # エラー詳細をログに出力
+            logger.error(f"Error in rewrite_novel: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=str(e))
     
     @app.post("/api/generate-story")
@@ -175,7 +180,7 @@ try:
         """
         try:
             # AIへのプロンプトを作成
-            prompt_data = request.data.model_dump()
+            prompt_data = request.data
             prompt = json.dumps(prompt_data, ensure_ascii=False, indent=2)
             
             # エージェントを使って応答を生成
@@ -183,8 +188,11 @@ try:
             
             # JSONクリーニングとパース
             return parse_json_response(raw_response)
-    
+
         except Exception as e:
+            logger.error(f"Error in generate_story: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=str(e))
     
     def parse_json_response(raw_response: str):
