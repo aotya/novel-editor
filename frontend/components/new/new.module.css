@@ -186,11 +186,23 @@
 .footerActions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--app-border);
+}
+
+.leftActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rightActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .cancelButton {
@@ -228,3 +240,28 @@
   }
 }
 
+.deleteButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

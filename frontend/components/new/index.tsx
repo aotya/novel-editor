@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { createNovel, updateNovel } from '@/app/new/actions';
+import { useRouter } from 'next/navigation';
+import { createNovel, updateNovel, deleteNovel } from '@/app/new/actions';
 import styles from './new.module.css';
 
 type NewProps = {
@@ -17,6 +18,7 @@ type NewProps = {
 export default function New({ initialData, novelId, backHref = "/" }: NewProps) {
   const [isPending, setIsPending] = useState(false);
   const isEdit = !!novelId;
+  const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true);
@@ -26,6 +28,25 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
       await createNovel(formData);
     }
     // Note: If successful, it redirects, so we don't need to set isPending(false)
+  }
+
+  async function handleDelete() {
+    if (!novelId) return;
+    
+    const confirmed = window.confirm('この小説を削除してもよろしいですか？この操作は取り消せません。');
+    if (!confirmed) return;
+
+    setIsPending(true);
+    const result = await deleteNovel(novelId);
+    
+    if (result?.error) {
+      alert(result.error);
+      setIsPending(false);
+      return;
+    }
+    
+    // 削除成功後、トップページにリダイレクト
+    router.push('/');
   }
 
   return (
@@ -91,19 +112,36 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
               </label>
 
               <div className={styles.footerActions}>
-                <Link href={backHref}>
-                  <button type="button" className={styles.cancelButton}>
-                    キャンセル
+                <div className={styles.leftActions}>
+                  {isEdit && (
+                    <button 
+                      type="button" 
+                      className={styles.deleteButton} 
+                      onClick={handleDelete}
+                      disabled={isPending}
+                    >
+                      <span className="material-symbols-outlined" style={{fontSize: '20px'}}>
+                        delete
+                      </span>
+                      削除
+                    </button>
+                  )}
+                </div>
+                <div className={styles.rightActions}>
+                  <Link href={backHref}>
+                    <button type="button" className={styles.cancelButton}>
+                      キャンセル
+                    </button>
+                  </Link>
+                  <button type="submit" className={styles.createButton} disabled={isPending}>
+                    <span className="material-symbols-outlined" style={{fontSize: '20px'}}>
+                      {isEdit ? 'save' : 'add'}
+                    </span>
+                    {isPending 
+                      ? (isEdit ? '保存中...' : '作成中...') 
+                      : (isEdit ? '保存' : '作成')}
                   </button>
-                </Link>
-                <button type="submit" className={styles.createButton} disabled={isPending}>
-                  <span className="material-symbols-outlined" style={{fontSize: '20px'}}>
-                    {isEdit ? 'save' : 'add'}
-                  </span>
-                  {isPending 
-                    ? (isEdit ? '保存中...' : '作成中...') 
-                    : (isEdit ? '保存' : '作成')}
-                </button>
+                </div>
               </div>
             </div>
           </form>

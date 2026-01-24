@@ -7,8 +7,6 @@ type ToolbarProps = {
   insertText: (text: string) => void;
   wrapSelection: (start: string, end: string) => void;
   insertRuby: () => void;
-  isAutoIndentEnabled: boolean;
-  setIsAutoIndentEnabled: (enabled: boolean) => void;
   isAiMode: boolean;
   toggleAiMode: () => void;
   handleSave: () => void;
@@ -21,8 +19,6 @@ export const Toolbar = ({
   insertText,
   wrapSelection,
   insertRuby,
-  isAutoIndentEnabled,
-  setIsAutoIndentEnabled,
   isAiMode,
   toggleAiMode,
   handleSave,
@@ -81,13 +77,6 @@ export const Toolbar = ({
              title="Insert Ruby (|Text《...》)"
           >
             <span style={{fontSize: '12px', fontWeight: 'bold'}}>ルビ</span>
-          </button>
-          <button 
-             onClick={() => setIsAutoIndentEnabled(!isAutoIndentEnabled)}
-             className={`${styles.toolButton} ${isAutoIndentEnabled ? styles.toolButtonActive : ''}`}
-             title={isAutoIndentEnabled ? "Auto Indent ON (Insert space on Enter)" : "Auto Indent OFF"}
-          >
-            <span className="material-symbols-outlined" style={{fontSize: '20px'}}>format_indent_increase</span>
           </button>
           
           <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb', margin: '0 8px' }}></div>
