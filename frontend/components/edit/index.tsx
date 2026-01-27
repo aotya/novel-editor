@@ -97,7 +97,6 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [chapterTitle, setChapterTitle] = useState('');
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
   const [isReordering, setIsReordering] = useState(false);
-  const [isAutoIndentEnabled, setIsAutoIndentEnabled] = useState(true);
   
   // AI Mode State
   const [isAiMode, setIsAiMode] = useState(false);
@@ -833,14 +832,6 @@ export default function Edit({ novel, initialActs }: EditProps) {
     }
   };
 
-  // Update storage when state changes
-  useEffect(() => {
-      if (editor) {
-          // @ts-ignore - Custom extension storage type not inferred
-          editor.storage.indentOnEnter.enabled = isAutoIndentEnabled;
-      }
-  }, [isAutoIndentEnabled, editor]);
-
   // Update editor content when active chapter changes
   useEffect(() => {
     if (editor && activeChapter) {
@@ -1145,8 +1136,6 @@ export default function Edit({ novel, initialActs }: EditProps) {
           insertText={insertText}
           wrapSelection={wrapSelection}
           insertRuby={insertRuby}
-          isAutoIndentEnabled={isAutoIndentEnabled}
-          setIsAutoIndentEnabled={setIsAutoIndentEnabled}
           isAiMode={isAiMode}
           toggleAiMode={toggleAiMode}
           handleSave={handleSave}
