@@ -48,8 +48,7 @@ export default function Home({ novels }: HomeProps) {
           {/* Header Section */}
           <div className={styles.headerSection}>
             <div className={styles.titleGroup}>
-              <h2 className={styles.title}>My Library</h2>
-              <p className={styles.subtitle}>Select a project to continue writing.</p>
+              <h2 className={styles.title}>小説一覧</h2>
             </div>
             <div className={styles.actionGroup}>
               <Link href="/new">
@@ -63,31 +62,12 @@ export default function Home({ novels }: HomeProps) {
 
           {/* Controls Section */}
           <div className={styles.controlsSection}>
-            <div className={styles.searchWrapper}>
-              <span className={`material-symbols-outlined ${styles.searchIcon}`}>search</span>
-              <input 
-                className={styles.searchInput} 
-                placeholder="Search titles, characters, or scenes..." 
-                type="text" 
-              />
-            </div>
             <div className={styles.filtersGroup}>
               <button className={styles.filterButton} onClick={toggleTheme}>
                 <span className={`material-symbols-outlined ${styles.filterIcon}`}>
                   {theme === 'light' ? 'dark_mode' : 'light_mode'}
                 </span>
                 <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
-              </button>
-              <button className={styles.filterButton}>
-                <span>Sort: Recent</span>
-                <span className={`material-symbols-outlined ${styles.filterIcon}`}>keyboard_arrow_down</span>
-              </button>
-              <button className={styles.filterButton}>
-                <span>Status: All</span>
-                <span className={`material-symbols-outlined ${styles.filterIcon}`}>keyboard_arrow_down</span>
-              </button>
-              <button className={styles.filterButton}>
-                <span className={`material-symbols-outlined ${styles.filterIcon}`}>grid_view</span>
               </button>
             </div>
           </div>
@@ -101,8 +81,8 @@ export default function Home({ novels }: HomeProps) {
                   <span className={`material-symbols-outlined ${styles.plusIcon}`}>add</span>
                 </div>
                 <div className={styles.newProjectText}>
-                  <p className={styles.newProjectTitle}>New Project</p>
-                  <p className={styles.newProjectSubtitle}>Start a fresh manuscript</p>
+                  <p className={styles.newProjectTitle}>新規小説作成</p>
+
                 </div>
               </button>
             </Link>
@@ -113,15 +93,14 @@ export default function Home({ novels }: HomeProps) {
                 <div className={styles.card} style={novel.status === 'draft' && !novel.image_url ? {opacity: 0.75} : {}}>
                   <div className={`${styles.cardImageWrapper} ${!novel.image_url ? styles.bgGradientPurple : ''}`}>
                     {novel.image_url ? (
-                       <img 
-                       alt={novel.title} 
-                       className={styles.cardImage} 
-                       src={novel.image_url}
-                     />
+                      <img 
+                      alt={novel.title} 
+                      className={styles.cardImage} 
+                      src={novel.image_url}
+                    />
                     ) : (
                       <div className={styles.cardGradient}></div>
                     )}
-                   
                     <div className={styles.cardOverlayButton}>
                       <button className={styles.menuButton}>
                         <span className="material-symbols-outlined" style={{fontSize: '20px'}}>more_vert</span>
