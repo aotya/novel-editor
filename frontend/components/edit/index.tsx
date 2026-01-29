@@ -5,34 +5,26 @@ import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import Link from 'next/link';
 import { 
-  DndContext, 
-  closestCenter, 
   KeyboardSensor, 
   PointerSensor, 
   useSensor, 
   useSensors,
   DragEndEvent,
   DragOverEvent,
-  useDroppable
 } from '@dnd-kit/core';
 import {
   arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import styles from './edit.module.css';
 import { createClient } from '@/lib/supabase/client';
-import { ActItem } from './ActItem';
 import { AiHighlight } from './extensions/AiHighlight';
 import { AiPanel } from './AiPanel';
 import { WriteSettingsModal } from './WriteSettingsModal';
 import { Toolbar } from './Toolbar';
 import { Sidebar } from './Sidebar';
 import { EditorPaper } from './EditorPaper';
-import { MobileFooter } from './MobileFooter';
 import { 
   updateChapterContent, 
   updateChapterTitle, 
@@ -94,6 +86,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [chapterTitle, setChapterTitle] = useState('');
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
   const [isReordering, setIsReordering] = useState(false);
@@ -853,6 +846,8 @@ export default function Edit({ novel, initialActs }: EditProps) {
         if (!confirmSwitch) return;
       }
       setActiveChapterId(chapterId);
+      // Close sidebar on mobile after selecting chapter
+      setIsSidebarOpen(false);
   };
 
   const handleSave = useCallback(async () => {
@@ -885,6 +880,10 @@ export default function Edit({ novel, initialActs }: EditProps) {
         alert('Failed to save changes.');
     } else {
         setSaveStatus('saved');
+        
+        // Show success feedback temporarily
+        setShowSaveSuccess(true);
+        setTimeout(() => setShowSaveSuccess(false), 2000);
         
         // Update local state to reflect changes
         setActs(prevActs => prevActs.map(act => ({
@@ -1106,6 +1105,12 @@ export default function Edit({ novel, initialActs }: EditProps) {
 
   return (
     <div className={styles.container}>
+      {/* Mobile Overlay */}
+      <div 
+        className={`${styles.mobileOverlay} ${isSidebarOpen ? styles.show : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
       {/* Left Sidebar */}
       <Sidebar 
         isSidebarOpen={isSidebarOpen}
@@ -1202,12 +1207,21 @@ export default function Edit({ novel, initialActs }: EditProps) {
         onExecute={handleGenerateStoryExecute}
       />
 
-      {/* Mobile Footer & Overlay */}
-      <MobileFooter 
-        isSidebarOpen={isSidebarOpen}
-        setIsSidebarOpen={setIsSidebarOpen}
-        handleCreateChapter={handleCreateChapter}
-      />
+      {/* Mobile Save FAB */}
+      <button 
+        className={`${styles.saveFab} ${showSaveSuccess ? styles.saveFabSuccess : ''}`}
+        onClick={handleSave}
+        title="Save"
+        disabled={saveStatus === 'saving'}
+      >
+        <span 
+          className={`material-symbols-outlined ${saveStatus === 'saving' ? styles.fabSpinning : ''}`} 
+          style={{fontSize: '24px'}}
+        >
+          {saveStatus === 'saving' ? 'sync' : showSaveSuccess ? 'check_circle' : 'save'}
+        </span>
+      </button>
+
     </div>
   );
 }

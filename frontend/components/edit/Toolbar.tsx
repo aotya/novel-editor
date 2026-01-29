@@ -92,7 +92,7 @@ export const Toolbar = ({
         </div>
       </div>
 
-      <div className={styles.metaInfo}>
+      <div className={`${styles.metaInfo} ${styles.hideOnMobile}`}>
         <button 
           className={styles.toolButton} 
           title="Save"
