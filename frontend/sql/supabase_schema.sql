@@ -84,6 +84,8 @@ create table relationships (
   target_character_id uuid references characters on delete cascade not null,
   label text,
   arrow_type text default 'forward', -- 'forward', 'reverse', 'bidirectional', 'none'
+  source_handle text,
+  target_handle text,
   
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())

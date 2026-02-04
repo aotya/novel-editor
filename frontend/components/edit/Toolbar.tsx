@@ -10,7 +10,7 @@ type ToolbarProps = {
   isAiMode: boolean;
   toggleAiMode: () => void;
   handleSave: () => void;
-  saveStatus: 'saved' | 'saving' | 'unsaved';
+  saveStatus: 'saved' | 'saving' | 'unsaved' | 'error';
 };
 
 export const Toolbar = ({
@@ -101,8 +101,8 @@ export const Toolbar = ({
           <span className="material-symbols-outlined" style={{fontSize: '20px'}}>save</span>
         </button>
         <span className={styles.saveStatus}>
-          <span className={styles.statusDot} style={{backgroundColor: saveStatus === 'unsaved' ? '#fbbf24' : '#34d399'}}></span>
-          {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+          <span className={styles.statusDot} style={{backgroundColor: saveStatus === 'error' ? '#ef4444' : saveStatus === 'unsaved' ? '#fbbf24' : '#34d399'}}></span>
+          {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
         </span>
         <div className={styles.metaDivider}></div>
       </div>

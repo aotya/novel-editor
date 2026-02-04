@@ -85,7 +85,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [acts, setActs] = useState<Act[]>(initialActs);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [chapterTitle, setChapterTitle] = useState('');
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
@@ -860,40 +860,44 @@ export default function Edit({ novel, initialActs }: EditProps) {
     const text = editor.getText();
     const count = text.replace(/\s/g, '').length;
 
-    // Parallel save: Content and Title
-    const promises = [];
-    
-    // Save content
-    promises.push(updateChapterContent(activeChapter.id, content, count));
+    try {
+      // Parallel save: Content and Title
+      const promises = [];
+      
+      // Save content
+      promises.push(updateChapterContent(activeChapter.id, content, count));
 
-    // Save title if changed
-    if (chapterTitle !== activeChapter.title) {
-        promises.push(updateChapterTitle(activeChapter.id, novel.id, chapterTitle));
-    }
+      // Save title if changed
+      if (chapterTitle !== activeChapter.title) {
+          promises.push(updateChapterTitle(activeChapter.id, novel.id, chapterTitle));
+      }
 
-    const results = await Promise.all(promises);
-    const hasError = results.some(r => r.error);
+      const results = await Promise.all(promises);
+      const hasError = results.some(r => r.error);
 
-    if (hasError) {
-        console.error('Error saving:', results);
-        setSaveStatus('unsaved'); // Or error state
-        alert('Failed to save changes.');
-    } else {
-        setSaveStatus('saved');
-        
-        // Show success feedback temporarily
-        setShowSaveSuccess(true);
-        setTimeout(() => setShowSaveSuccess(false), 2000);
-        
-        // Update local state to reflect changes
-        setActs(prevActs => prevActs.map(act => ({
-            ...act,
-            chapters: act.chapters.map(ch => 
-                ch.id === activeChapter.id 
-                ? { ...ch, title: chapterTitle, content: content, words_count: count } 
-                : ch
-            )
-        })));
+      if (hasError) {
+          console.error('Error saving:', results);
+          setSaveStatus('error');
+      } else {
+          setSaveStatus('saved');
+          
+          // Show success feedback temporarily
+          setShowSaveSuccess(true);
+          setTimeout(() => setShowSaveSuccess(false), 2000);
+          
+          // Update local state to reflect changes
+          setActs(prevActs => prevActs.map(act => ({
+              ...act,
+              chapters: act.chapters.map(ch => 
+                  ch.id === activeChapter.id 
+                  ? { ...ch, title: chapterTitle, content: content, words_count: count } 
+                  : ch
+              )
+          })));
+      }
+    } catch (error) {
+      console.error('Network error saving:', error);
+      setSaveStatus('error');
     }
   }, [activeChapter, editor, chapterTitle, novel.id]);
 
