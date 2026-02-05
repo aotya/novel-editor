@@ -3,6 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import styles from './plot.module.css';
 
 type PlotCard = {
@@ -25,13 +45,86 @@ type Props = {
   novelTitle: string;
 };
 
+// Sortable Card Component
+type SortableCardProps = {
+  card: PlotCard;
+  listId: string;
+  onUpdateContent: (listId: string, cardId: string, content: string) => void;
+};
+
+function SortableCard({ card, listId, onUpdateContent }: SortableCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${styles.card} ${isDragging ? styles.cardDragging : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      <div className={styles.editIconWrapper}>
+        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
+      </div>
+      <textarea
+        className={styles.cardText}
+        value={card.content || ''}
+        onChange={(e) => onUpdateContent(listId, card.id, e.target.value)}
+        onPointerDown={(e) => e.stopPropagation()}
+        rows={3}
+      />
+      {card.note && (
+        <div className={styles.cardFooter}>
+          <div className={styles.foreshadowBadge}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#f59e0b', marginTop: '2px' }}>lightbulb</span>
+            <p className={styles.foreshadowText}>{card.note}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PlotBoard({ novelId, novelTitle }: Props) {
   const [lists, setLists] = useState<PlotList[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletedListIds, setDeletedListIds] = useState<string[]>([]);
+  const [activeCard, setActiveCard] = useState<PlotCard | null>(null);
   
   const supabase = createClient();
+
+  // Configure sensors for drag and drop
+  // Touch sensor has delay for long press on mobile
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 300, // Long press for mobile (300ms)
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchPlotData();
@@ -167,6 +260,62 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
       }));
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    // Find the card being dragged
+    for (const list of lists) {
+      const card = list.cards.find(c => c.id === active.id);
+      if (card) {
+        setActiveCard(card);
+        break;
+      }
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveCard(null);
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    // Find which list contains the active card
+    let sourceListId: string | null = null;
+    let sourceList: PlotList | null = null;
+    
+    for (const list of lists) {
+      if (list.cards.find(c => c.id === active.id)) {
+        sourceListId = list.id;
+        sourceList = list;
+        break;
+      }
+    }
+
+    if (!sourceListId || !sourceList) return;
+
+    // Reorder within the same list
+    const oldIndex = sourceList.cards.findIndex(c => c.id === active.id);
+    const newIndex = sourceList.cards.findIndex(c => c.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      setLists(prev => prev.map(l => {
+        if (l.id === sourceListId) {
+          const newCards = arrayMove(l.cards, oldIndex, newIndex);
+          // Update order_index for all cards
+          return {
+            ...l,
+            cards: newCards.map((card, index) => ({
+              ...card,
+              order_index: index,
+            })),
+          };
+        }
+        return l;
+      }));
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     
@@ -275,6 +424,12 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
                 Loading plot...
             </div>
         ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
             <div className={styles.boardContainer}>
             {lists.map((list) => (
                 <div key={list.id} className={styles.column}>
@@ -298,37 +453,19 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
 
                 <div className={styles.columnContent}>
                     {list.cards.length > 0 ? (
-                    list.cards.map((card) => (
-                        <div key={card.id} className={styles.card}>
-                        <div className={styles.editIconWrapper}>
-                            <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#94a3b8'}}>edit</span>
-                        </div>
-                        <textarea 
-                            className={styles.cardText}
-                            value={card.content || ''}
-                            onChange={(e) => handleUpdateCardContent(list.id, card.id, e.target.value)}
-                            style={{
-                                width: '100%', 
-                                background: 'transparent', 
-                                border: 'none', 
-                                resize: 'none', 
-                                outline: 'none',
-                                fontFamily: 'inherit',
-                                fontSize: 'inherit',
-                                color: 'inherit'
-                            }}
-                            rows={3}
+                    <SortableContext
+                      items={list.cards.map(c => c.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {list.cards.map((card) => (
+                        <SortableCard
+                          key={card.id}
+                          card={card}
+                          listId={list.id}
+                          onUpdateContent={handleUpdateCardContent}
                         />
-                        {card.note && (
-                            <div className={styles.cardFooter}>
-                            <div className={styles.foreshadowBadge}>
-                                <span className="material-symbols-outlined" style={{fontSize: '16px', color: '#f59e0b', marginTop: '2px'}}>lightbulb</span>
-                                <p className={styles.foreshadowText}>{card.note}</p>
-                            </div>
-                            </div>
-                        )}
-                        </div>
-                    ))
+                      ))}
+                    </SortableContext>
                     ) : (
                     <div className={styles.emptyState}>
                         <span className={`material-symbols-outlined ${styles.emptyStateIcon}`}>post_add</span>
@@ -356,6 +493,27 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
                 </button>
             </div>
             </div>
+
+            {/* Drag Overlay - shows the card being dragged */}
+            <DragOverlay>
+              {activeCard ? (
+                <div className={`${styles.card} ${styles.cardOverlay}`}>
+                  <div className={styles.editIconWrapper}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
+                  </div>
+                  <div className={styles.cardText}>{activeCard.content || ''}</div>
+                  {activeCard.note && (
+                    <div className={styles.cardFooter}>
+                      <div className={styles.foreshadowBadge}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#f59e0b', marginTop: '2px' }}>lightbulb</span>
+                        <p className={styles.foreshadowText}>{activeCard.note}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </DragOverlay>
+            </DndContext>
         )}
       </main>
     </div>
