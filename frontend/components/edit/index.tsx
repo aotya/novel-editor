@@ -29,6 +29,7 @@ import { EditorPaper } from './EditorPaper';
 import { 
   updateChapterContent, 
   updateChapterTitle, 
+  updateChapterMeta,
   createChapter, 
   deleteChapter,
   deleteAct,
@@ -59,6 +60,7 @@ type Chapter = {
   status: string;
   order_index: number;
   updated_at: string;
+  episode_number?: number | null;
 };
 
 type Act = {
@@ -94,6 +96,8 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [chapterTitle, setChapterTitle] = useState('');
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
   const [isReordering, setIsReordering] = useState(false);
+  const [chapterStatus, setChapterStatus] = useState<string>('draft');
+  const [episodeNumber, setEpisodeNumber] = useState<number | null>(null);
   
   // AI Mode State
   const [isAiMode, setIsAiMode] = useState(false);
@@ -355,6 +359,8 @@ export default function Edit({ novel, initialActs }: EditProps) {
     if (activeChapter) {
         setChapterTitle(activeChapter.title);
         setCurrentWordsCount(activeChapter.words_count || 0);
+        setChapterStatus(activeChapter.status || 'draft');
+        setEpisodeNumber(activeChapter.episode_number ?? null);
     }
   }, [activeChapter]);
 
@@ -904,6 +910,18 @@ export default function Edit({ novel, initialActs }: EditProps) {
           promises.push(updateChapterTitle(activeChapter.id, novel.id, chapterTitle));
       }
 
+      // Save meta (status, episode_number) if changed
+      const metaChanged = 
+        chapterStatus !== activeChapter.status || 
+        episodeNumber !== activeChapter.episode_number;
+      
+      if (metaChanged) {
+          promises.push(updateChapterMeta(activeChapter.id, novel.id, {
+            status: chapterStatus,
+            episode_number: episodeNumber
+          }));
+      }
+
       const results = await Promise.all(promises);
       const hasError = results.some(r => r.error);
 
@@ -922,7 +940,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
               ...act,
               chapters: act.chapters.map(ch => 
                   ch.id === activeChapter.id 
-                  ? { ...ch, title: chapterTitle, content: content, words_count: count } 
+                  ? { ...ch, title: chapterTitle, content: content, words_count: count, status: chapterStatus, episode_number: episodeNumber } 
                   : ch
               )
           })));
@@ -931,7 +949,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
       console.error('Network error saving:', error);
       setSaveStatus('error');
     }
-  }, [activeChapter, editor, chapterTitle, novel.id]);
+  }, [activeChapter, editor, chapterTitle, chapterStatus, episodeNumber, novel.id]);
 
   // Handle keyboard shortcuts (Cmd+S / Ctrl+S)
   useEffect(() => {
@@ -1201,6 +1219,10 @@ export default function Edit({ novel, initialActs }: EditProps) {
               isAiMode={isAiMode}
               currentWordsCount={currentWordsCount}
               editor={editor}
+              chapterStatus={chapterStatus}
+              setChapterStatus={setChapterStatus}
+              episodeNumber={episodeNumber}
+              setEpisodeNumber={setEpisodeNumber}
             />
 
             {/* AI Suggestion Panel */}

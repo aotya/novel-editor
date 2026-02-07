@@ -15,6 +15,7 @@ export async function createNovel(formData: FormData) {
 
   const title = formData.get('title') as string
   const synopsis = formData.get('synopsis') as string
+  const perspective = formData.get('perspective') as string
 
   const { error } = await supabase
     .from('novels')
@@ -22,6 +23,7 @@ export async function createNovel(formData: FormData) {
       user_id: user.id,
       title,
       synopsis,
+      perspective,
       status: 'draft',
     })
 
@@ -44,12 +46,14 @@ export async function updateNovel(novelId: string, formData: FormData) {
 
   const title = formData.get('title') as string
   const synopsis = formData.get('synopsis') as string
+  const perspective = formData.get('perspective') as string
 
   const { error } = await supabase
     .from('novels')
     .update({
       title,
       synopsis,
+      perspective,
     })
     .eq('id', novelId)
     .eq('user_id', user.id) // Ensure security

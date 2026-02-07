@@ -159,6 +159,26 @@ export async function updateChapterTitle(chapterId: string, novelId: string, tit
     return { success: true }
 }
 
+export async function updateChapterMeta(
+  chapterId: string, 
+  novelId: string, 
+  meta: { status?: string; episode_number?: number | null }
+) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+  
+    const { error } = await supabase
+      .from('chapters')
+      .update(meta)
+      .eq('id', chapterId)
+  
+    if (error) return { error: error.message }
+  
+    revalidatePath(`/novel/${novelId}/edit`)
+    return { success: true }
+}
+
 export async function updateChapterOrder(novelId: string, updates: { id: string, order_index: number, act_id?: string }[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

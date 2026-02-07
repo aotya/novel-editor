@@ -40,6 +40,7 @@ try:
     from novel_adk.proofreader import proofreader_agent
     from novel_adk.rewriter import rewriter_agent
     from novel_adk.story_generator import story_generator_agent
+    from novel_adk.long_story_generator import long_story_generator_agent
     
     # docs_url, redoc_url を環境変数で制御 (本番環境では None にして無効化推奨)
     ENABLE_DOCS = os.getenv("ENABLE_DOCS", "false").lower() == "true"
@@ -191,6 +192,28 @@ try:
 
         except Exception as e:
             logger.error(f"Error in generate_story: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/generate-long-story")
+    def generate_long_story(request: StoryGenRequest, user=Depends(get_current_user)):
+        """
+        小説の設定データとこれまでの文脈に基づき、長編小説の続きを生成します。
+        """
+        try:
+            # AIへのプロンプトを作成
+            prompt_data = request.data
+            prompt = json.dumps(prompt_data, ensure_ascii=False, indent=2)
+            
+            # エージェントを使って応答を生成
+            raw_response = long_story_generator_agent.generate_response(prompt)
+            
+            # JSONクリーニングとパース
+            return parse_json_response(raw_response)
+
+        except Exception as e:
+            logger.error(f"Error in generate_long_story: {e}")
             import traceback
             logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=str(e))

@@ -10,6 +10,7 @@ type NewProps = {
   initialData?: {
     title: string;
     synopsis: string | null;
+    perspective?: string | null;
   };
   novelId?: string;
   backHref?: string;
@@ -98,6 +99,20 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
                   defaultValue={initialData?.title}
                 />
                 <span className={styles.helperText}>A catchy title can be changed later.</span>
+              </label>
+
+              <label className={styles.label}>
+                <span className={styles.labelText}>視点</span>
+                <select
+                  name="perspective"
+                  className={styles.input}
+                  defaultValue={initialData?.perspective || '一人称'}
+                >
+                  <option value="一人称">一人称（私、僕、俺）</option>
+                  <option value="三人称一元">三人称一元（特定の人物の視点）</option>
+                  <option value="三人称神視点">三人称神視点（俯瞰）</option>
+                </select>
+                <span className={styles.helperText}>小説の語り口を選択してください。</span>
               </label>
               
               <label className={styles.label} style={{flexGrow: 1}}>

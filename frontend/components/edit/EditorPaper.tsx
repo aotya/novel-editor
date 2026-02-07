@@ -8,6 +8,8 @@ type Chapter = {
   updated_at: string;
   content: any;
   words_count: number;
+  status?: string;
+  episode_number?: number | null;
 };
 
 type EditorPaperProps = {
@@ -19,6 +21,10 @@ type EditorPaperProps = {
   isAiMode: boolean;
   currentWordsCount: number;
   editor: Editor | null;
+  chapterStatus: string;
+  setChapterStatus: (status: string) => void;
+  episodeNumber: number | null;
+  setEpisodeNumber: (num: number | null) => void;
 };
 
 export const EditorPaper = ({
@@ -30,6 +36,10 @@ export const EditorPaper = ({
   isAiMode,
   currentWordsCount,
   editor,
+  chapterStatus,
+  setChapterStatus,
+  episodeNumber,
+  setEpisodeNumber,
 }: EditorPaperProps) => {
   if (!editor) return null;
 
@@ -68,6 +78,36 @@ export const EditorPaper = ({
               <span className={styles.metaItem}>
                 <span className="material-symbols-outlined" style={{fontSize: '16px'}}>bar_chart</span>
                 {currentWordsCount} words
+              </span>
+              <span className={styles.metaDivider}>|</span>
+              <span className={styles.metaItem}>
+                <span className="material-symbols-outlined" style={{fontSize: '16px'}}>tag</span>
+                <input
+                  type="number"
+                  className={styles.episodeInput}
+                  placeholder="話数"
+                  value={episodeNumber ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEpisodeNumber(val === '' ? null : parseInt(val, 10));
+                    if (saveStatus !== 'unsaved') setSaveStatus('unsaved');
+                  }}
+                  min={1}
+                />
+                話
+              </span>
+              <span className={styles.metaItem}>
+                <select
+                  className={styles.statusSelect}
+                  value={chapterStatus}
+                  onChange={(e) => {
+                    setChapterStatus(e.target.value);
+                    if (saveStatus !== 'unsaved') setSaveStatus('unsaved');
+                  }}
+                >
+                  <option value="draft">下書き</option>
+                  <option value="published">投稿済み</option>
+                </select>
               </span>
             </div>
 
