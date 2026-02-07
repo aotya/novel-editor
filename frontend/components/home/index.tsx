@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import styles from './home.module.css';
+import LogoComponent from '@/components/common/logo';
+import ThemeToggle from '@/components/common/theme-toggle';
 
 // Type definition for Novel (You might want to move this to a types file later)
 type Novel = {
@@ -20,32 +22,17 @@ type HomeProps = {
 };
 
 export default function Home({ novels }: HomeProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const initialTheme = root.getAttribute('data-theme') as 'light' | 'dark' || 
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(initialTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-  };
-
   return (
     <div className={styles.wrapper}>
       <main className={styles.main}>
-        {/* Mobile Header */}
-        <div className={styles.mobileHeader}>
-          <span className={styles.logoText}>NovelStudio</span>
-        </div>
 
         <div className={styles.container}>
           {/* Header Section */}
+          <div className={styles.mainLogoHeader}>
+            <div className={styles.logoContainer}>
+              <LogoComponent width={260} height={72} />
+            </div>
+          </div>
           <div className={styles.headerSection}>
             <div className={styles.titleGroup}>
               <h2 className={styles.title}>小説一覧</h2>
@@ -63,12 +50,7 @@ export default function Home({ novels }: HomeProps) {
           {/* Controls Section */}
           <div className={styles.controlsSection}>
             <div className={styles.filtersGroup}>
-              <button className={styles.filterButton} onClick={toggleTheme}>
-                <span className={`material-symbols-outlined ${styles.filterIcon}`}>
-                  {theme === 'light' ? 'dark_mode' : 'light_mode'}
-                </span>
-                <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
-              </button>
+              <ThemeToggle />
             </div>
           </div>
 
@@ -82,7 +64,6 @@ export default function Home({ novels }: HomeProps) {
                 </div>
                 <div className={styles.newProjectText}>
                   <p className={styles.newProjectTitle}>新規小説作成</p>
-
                 </div>
               </button>
             </Link>
@@ -90,7 +71,7 @@ export default function Home({ novels }: HomeProps) {
             {/* Dynamic Novel Cards */}
             {novels.map((novel) => (
               <Link key={novel.id} href={`/novel/${novel.id}`} style={{display: 'contents'}}>
-                <div className={styles.card} style={novel.status === 'draft' && !novel.image_url ? {opacity: 0.75} : {}}>
+                <div className={`${styles.card} ${novel.status === 'draft' && !novel.image_url ? styles.cardDraft : ''}`}>
                   <div className={`${styles.cardImageWrapper} ${!novel.image_url ? styles.bgGradientPurple : ''}`}>
                     {novel.image_url ? (
                       <img 
