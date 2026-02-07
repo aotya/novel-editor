@@ -300,17 +300,6 @@ export default function CharacterEditor({ novelId }: Props) {
         {/* Sidebar List */}
         <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
           <div className={styles.sidebarHeader}>
-            <label className={styles.searchWrapper}>
-              <div className={styles.searchInputContainer}>
-                <div className={styles.searchIcon}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>search</span>
-                </div>
-                <input 
-                  className={styles.searchInput} 
-                  placeholder="Search characters..." 
-                />
-              </div>
-            </label>
             <button className={styles.newCharacterButton} onClick={handleNewCharacter}>
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
               <span>New Character</span>
@@ -383,12 +372,6 @@ export default function CharacterEditor({ novelId }: Props) {
                     <span className="material-symbols-outlined">edit</span>
                   </button>
                 )}
-                <button className={styles.iconButton} title="History">
-                  <span className="material-symbols-outlined">history</span>
-                </button>
-                <button className={styles.iconButton} title="More Options">
-                  <span className="material-symbols-outlined">more_horiz</span>
-                </button>
               </div>
             </div>
 

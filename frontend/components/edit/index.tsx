@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -82,6 +83,9 @@ type EditProps = {
 };
 
 export default function Edit({ novel, initialActs }: EditProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [acts, setActs] = useState<Act[]>(initialActs);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -313,18 +317,38 @@ export default function Edit({ novel, initialActs }: EditProps) {
     return null;
   }, [acts, activeChapterId]);
 
-  // Set initial active chapter if none selected and chapters exist
+  // Sync URL with State and State with URL
   useEffect(() => {
-    if (!activeChapterId && acts.length > 0) {
-      // Find first chapter
-      for (const act of acts) {
-        if (act.chapters.length > 0) {
-          setActiveChapterId(act.chapters[0].id);
-          break;
+    const chapterIdFromUrl = searchParams.get('chapter');
+    
+    if (chapterIdFromUrl) {
+        // URL has chapter ID
+        if (chapterIdFromUrl !== activeChapterId) {
+             // Check existence
+             const exists = acts.some(act => act.chapters.some(c => c.id === chapterIdFromUrl));
+             if (exists) {
+                 setActiveChapterId(chapterIdFromUrl);
+             }
         }
-      }
+    } else {
+        // URL has no chapter ID
+        if (activeChapterId) {
+            // State has ID -> Update URL (replace to avoid history stack buildup)
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('chapter', activeChapterId);
+            router.replace(`${pathname}?${params.toString()}`);
+        } else if (acts.length > 0) {
+            // No State, No URL -> Select first chapter
+            for (const act of acts) {
+                if (act.chapters.length > 0) {
+                    const firstChapterId = act.chapters[0].id;
+                    setActiveChapterId(firstChapterId);
+                    break;
+                }
+            }
+        }
     }
-  }, [acts, activeChapterId]);
+  }, [searchParams, acts, activeChapterId, pathname, router]);
 
   // Sync title input and word count with active chapter
   useEffect(() => {
@@ -810,7 +834,11 @@ export default function Edit({ novel, initialActs }: EditProps) {
               }
               return act;
             }));
-            setActiveChapterId(newChapter.id);
+            
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('chapter', newChapter.id);
+            router.push(`${pathname}?${params.toString()}`);
+            
             setIsWriteModalOpen(false);
           }
         }
@@ -845,7 +873,11 @@ export default function Edit({ novel, initialActs }: EditProps) {
         const confirmSwitch = window.confirm('You have unsaved changes. Are you sure you want to switch chapters without saving?');
         if (!confirmSwitch) return;
       }
-      setActiveChapterId(chapterId);
+      
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('chapter', chapterId);
+      router.push(`${pathname}?${params.toString()}`);
+      
       // Close sidebar on mobile after selecting chapter
       setIsSidebarOpen(false);
   };
@@ -962,7 +994,10 @@ export default function Edit({ novel, initialActs }: EditProps) {
         }));
 
         // Switch to the new chapter
-        setActiveChapterId(newChapter.id);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('chapter', newChapter.id);
+        router.push(`${pathname}?${params.toString()}`);
+
         // Reset title input
         setChapterTitle('New Chapter');
     } else {
@@ -983,9 +1018,9 @@ export default function Edit({ novel, initialActs }: EditProps) {
 
         // If deleted chapter was active, switch to another one or clear selection
         if (activeChapterId === chapterId) {
-          setActiveChapterId(null); // Or select another reasonable default
-          // Ideally we should try to select the previous or next chapter, or first available
-          // But for now, null is safe, user can select manually
+          const params = new URLSearchParams(searchParams.toString());
+          params.delete('chapter');
+          router.push(`${pathname}?${params.toString()}`);
         }
       } else {
         console.error('Failed to delete chapter:', result.error);
@@ -1002,7 +1037,9 @@ export default function Edit({ novel, initialActs }: EditProps) {
         // If active chapter was in this act, clear selection
         const act = acts.find(a => a.id === actId);
         if (act && act.chapters.some(ch => ch.id === activeChapterId)) {
-          setActiveChapterId(null);
+          const params = new URLSearchParams(searchParams.toString());
+          params.delete('chapter');
+          router.push(`${pathname}?${params.toString()}`);
         }
 
         setActs(prevActs => prevActs.filter(a => a.id !== actId));

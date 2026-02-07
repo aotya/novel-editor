@@ -562,16 +562,6 @@ const RelationshipsEditor = ({ novel, initialCharacters, initialRelationships }:
       <div className={styles.main}>
         {/* Sidebar */}
         <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
-          <div className={styles.searchContainer}>
-            <div className={styles.searchInputWrapper}>
-              <span className={`material-symbols-outlined ${styles.searchIcon}`}>search</span>
-              <input 
-                type="text" 
-                className={styles.searchInput} 
-                placeholder="Search characters..." 
-              />
-            </div>
-          </div>
           <div className={styles.sidebarContent}>
             <h3 className={styles.sectionTitle}>Unplaced Characters</h3>
             

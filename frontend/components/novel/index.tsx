@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import styles from './novel.module.css';
+import LogoComponent from '@/components/common/logo';
 
 type NovelData = {
   id: string;
@@ -28,10 +29,8 @@ export default function Novel({ novel, stats }: NovelProps) {
         <div className={styles.sidebarHeader}>
           <div className={styles.brand}>
             <h1 className={styles.brandTitle}>
-              <span className="material-symbols-outlined" style={{color: 'var(--primary)'}}>edit_note</span>
-              WriterPro
+              <LogoComponent width={200} height={55} />
             </h1>
-            <p className={styles.version}>v2.1</p>
           </div>
           <div className={styles.navMenu}>
             <Link href="/" className={styles.navItem}>
