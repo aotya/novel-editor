@@ -137,6 +137,16 @@
   background-color: var(--toolbar-bg);
   backdrop-filter: blur(12px);
   opacity: 0.98;
+  flex-direction: column;
+}
+
+.spLogo {
+  @media (min-width: 1024px) {
+    display: none;
+  }
+  @media (max-width: 1023px) {
+    display: block;
+  }
 }
 
 .mobileMenuButton {

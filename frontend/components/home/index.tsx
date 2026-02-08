@@ -82,11 +82,6 @@ export default function Home({ novels }: HomeProps) {
                     ) : (
                       <div className={styles.cardGradient}></div>
                     )}
-                    <div className={styles.cardOverlayButton}>
-                      <button className={styles.menuButton}>
-                        <span className="material-symbols-outlined" style={{fontSize: '20px'}}>more_vert</span>
-                      </button>
-                    </div>
                   </div>
                   <div className={styles.cardContent}>
                     <div className={styles.cardTextGroup}>

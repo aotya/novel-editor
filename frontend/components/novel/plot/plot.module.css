@@ -303,21 +303,51 @@
   cursor: grabbing;
 }
 
-.editIconWrapper {
+.cardActions {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   opacity: 0.3;
   transition: opacity 0.2s;
-  cursor: grab;
 }
 
-.card:hover .editIconWrapper {
+.card:hover .cardActions {
   opacity: 1;
+}
+
+.editIconWrapper {
+  cursor: grab;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.editIconWrapper:hover {
+  background-color: var(--app-border);
 }
 
 .card:active .editIconWrapper {
   cursor: grabbing;
+}
+
+.deleteCardButton {
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteCardButton:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.deleteCardButton:hover span {
+  color: #ef4444 !important;
 }
 
 .episodeBadge {

@@ -11,6 +11,7 @@ type LogoProps = {
 
 export default function LogoComponent({ width = 200, height = 55, className = '' }: LogoProps) {
     return (
+      <a href="/">
         <div className={`${styles.logoWrapper} ${className}`} style={{ width, height }}>
             <Image 
                 src={Logo} 
@@ -29,5 +30,6 @@ export default function LogoComponent({ width = 200, height = 55, className = ''
                 style={{ width: '100%', height: 'auto' }}
             />
         </div>
+      </a>
     )
 }

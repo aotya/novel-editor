@@ -57,10 +57,10 @@ export default function Novel({ novel, stats }: NovelProps) {
       <div className={styles.mainContent}>
         {/* Top Header */}
         <header className={styles.topBar}>
-          <div style={{display: 'flex', alignItems: 'center'}}>
-            <button className={styles.mobileMenuButton}>
-              <span className="material-symbols-outlined">menu</span>
-            </button>
+          <div className={styles.spLogo}>
+            <LogoComponent width={200} height={55} />
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
             <div className={styles.breadcrumbs}>
               <Link href="/" className={styles.breadcrumbLink}>
                 <span className="material-symbols-outlined" style={{fontSize: '18px'}}>home</span>

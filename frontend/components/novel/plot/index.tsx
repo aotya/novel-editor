@@ -52,9 +52,10 @@ type SortableCardProps = {
   listId: string;
   onUpdateContent: (listId: string, cardId: string, content: string) => void;
   onUpdateEpisode: (listId: string, cardId: string, episode: number) => void;
+  onDeleteCard: (listId: string, cardId: string) => void;
 };
 
-function SortableCard({ card, listId, onUpdateContent, onUpdateEpisode }: SortableCardProps) {
+function SortableCard({ card, listId, onUpdateContent, onUpdateEpisode, onDeleteCard }: SortableCardProps) {
   const {
     attributes,
     listeners,
@@ -87,12 +88,21 @@ function SortableCard({ card, listId, onUpdateContent, onUpdateEpisode }: Sortab
         /> 
         話
       </div>
-      <div 
-        className={styles.editIconWrapper}
-        {...attributes}
-        {...listeners}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
+      <div className={styles.cardActions}>
+        <div 
+          className={styles.editIconWrapper}
+          {...attributes}
+          {...listeners}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
+        </div>
+        <button 
+          className={styles.deleteCardButton}
+          onClick={() => onDeleteCard(listId, card.id)}
+          title="シーンを削除"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>close</span>
+        </button>
       </div>
       <textarea
         className={styles.cardText}
@@ -117,6 +127,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletedListIds, setDeletedListIds] = useState<string[]>([]);
+  const [deletedCardIds, setDeletedCardIds] = useState<string[]>([]);
   const [activeCard, setActiveCard] = useState<PlotCard | null>(null);
   
   const supabase = createClient();
@@ -147,6 +158,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
   const fetchPlotData = async () => {
     setLoading(true);
     setDeletedListIds([]);
+    setDeletedCardIds([]);
     
     // Fetch Lists
     const { data: listsData, error: listsError } = await supabase
@@ -294,6 +306,24 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
       }));
   };
 
+  const handleDeleteCard = (listId: string, cardId: string) => {
+    if (window.confirm('このシーンを削除してもよろしいですか？')) {
+      setLists(prev => prev.map(l => {
+        if (l.id === listId) {
+          return {
+            ...l,
+            cards: l.cards.filter(c => c.id !== cardId).map((card, index) => ({
+              ...card,
+              order_index: index
+            }))
+          };
+        }
+        return l;
+      }));
+      setDeletedCardIds(prev => [...prev, cardId]);
+    }
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     // Find the card being dragged
@@ -354,6 +384,16 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
     setSaving(true);
     
     try {
+        // Delete Cards
+        if (deletedCardIds.length > 0) {
+            const { error: deleteCardError } = await supabase
+                .from('plot_cards')
+                .delete()
+                .in('id', deletedCardIds);
+            
+            if (deleteCardError) throw deleteCardError;
+        }
+
         // Delete Lists
         if (deletedListIds.length > 0) {
             const { error: deleteError } = await supabase
@@ -405,6 +445,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
 
         // Clear deleted IDs after successful save
         setDeletedListIds([]);
+        setDeletedCardIds([]);
         alert('保存しました');
     } catch (error) {
         console.error('Error saving data:', error);
@@ -499,6 +540,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
                           listId={list.id}
                           onUpdateContent={handleUpdateCardContent}
                           onUpdateEpisode={handleUpdateCardEpisode}
+                          onDeleteCard={handleDeleteCard}
                         />
                       ))}
                     </SortableContext>

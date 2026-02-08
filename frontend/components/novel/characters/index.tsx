@@ -5,6 +5,7 @@ import styles from './characters.module.css';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import LogoComponent from '@/components/common/logo';
 
 type Character = {
   id: string;
@@ -284,10 +285,9 @@ export default function CharacterEditor({ novelId }: Props) {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <Link href={`/novel/${novelId}`} className={styles.logoIcon}>
-            <span className="material-symbols-outlined" style={{ fontSize: '30px' }}>menu_book</span>
-          </Link>
-          <h2 className={styles.logoText}>Novel Studio</h2>
+          <h2 className={styles.logoText}>
+            <LogoComponent width={200} height={55} />
+          </h2>
         </div>
         <div className={styles.headerRight}>
           <div className={styles.navLinks}>
