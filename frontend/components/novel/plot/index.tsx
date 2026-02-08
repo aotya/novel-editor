@@ -75,8 +75,6 @@ function SortableCard({ card, listId, onUpdateContent, onUpdateEpisode }: Sortab
       ref={setNodeRef}
       style={style}
       className={`${styles.card} ${isDragging ? styles.cardDragging : ''}`}
-      {...attributes}
-      {...listeners}
     >
       <div className={styles.episodeBadge}>
         第 
@@ -86,18 +84,20 @@ function SortableCard({ card, listId, onUpdateContent, onUpdateEpisode }: Sortab
             className={styles.episodeInput}
             value={card.episode}
             onChange={(e) => onUpdateEpisode(listId, card.id, parseInt(e.target.value) || 1)}
-            onPointerDown={(e) => e.stopPropagation()}
         /> 
         話
       </div>
-      <div className={styles.editIconWrapper}>
+      <div 
+        className={styles.editIconWrapper}
+        {...attributes}
+        {...listeners}
+      >
         <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
       </div>
       <textarea
         className={styles.cardText}
         value={card.content || ''}
         onChange={(e) => onUpdateContent(listId, card.id, e.target.value)}
-        onPointerDown={(e) => e.stopPropagation()}
         rows={3}
       />
       {card.note && (
