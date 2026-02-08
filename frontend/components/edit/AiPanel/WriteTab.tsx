@@ -3,21 +3,22 @@ import styles from '../edit.module.css';
 
 type WriteTabProps = {
   setIsWriteModalOpen: (isOpen: boolean) => void;
+  setIsLongStoryModalOpen: (isOpen: boolean) => void;
   writeChatInput: string;
   setWriteChatInput: (input: string) => void;
 };
 
 export const WriteTab = ({
   setIsWriteModalOpen,
-  writeChatInput,
-  setWriteChatInput,
+  setIsLongStoryModalOpen,
 }: WriteTabProps) => {
   return (
     <div className={styles.aiWriteContainer}>
+      {/* 短編生成カード */}
       <div className={styles.assistantCard}>
         <div className={styles.assistantHeader}>
           <span className={`material-symbols-outlined ${styles.assistantIcon}`}>auto_fix</span>
-          <span className={styles.assistantTitle}>AI執筆アシスタント</span>
+          <span className={styles.assistantTitle}>短編生成</span>
         </div>
         <p className={styles.assistantSubtitle}>
           設定資料やプロットを読み込み、短編小説を自動生成します。
@@ -31,24 +32,22 @@ export const WriteTab = ({
         </button>
       </div>
 
-      <div>
-        <div className={styles.chatSectionTitle}>AIとの壁打ちチャット</div>
-        <div className={styles.chatContainer}>
-          <div className={styles.chatBubble}>
-            こんにちは。短編のアイデア出しですか？それとも執筆を開始しますか？
-          </div>
+      {/* 長編生成カード */}
+      <div className={styles.assistantCard}>
+        <div className={styles.assistantHeader}>
+          <span className={`material-symbols-outlined ${styles.assistantIcon}`}>auto_stories</span>
+          <span className={styles.assistantTitle}>長編生成</span>
         </div>
-      </div>
-
-      <div className={styles.chatInputContainer}>
-        <textarea 
-          className={styles.chatTextarea}
-          placeholder="AIに指示を出す..."
-          value={writeChatInput}
-          onChange={(e) => setWriteChatInput(e.target.value)}
-        />
-        <button className={styles.chatSendButton}>
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>play_arrow</span>
+        <p className={styles.assistantSubtitle}>
+          投稿済みの話を参照し、続きのエピソードを生成します。
+        </p>
+        <button 
+          className={styles.generateNovelsButton}
+         
+          onClick={() => setIsLongStoryModalOpen(true)}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>auto_stories</span>
+          続きを生成する
         </button>
       </div>
     </div>

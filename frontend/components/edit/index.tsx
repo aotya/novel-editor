@@ -23,6 +23,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AiHighlight } from './extensions/AiHighlight';
 import { AiPanel } from './AiPanel';
 import { WriteSettingsModal } from './WriteSettingsModal';
+import { LongStorySettingsModal } from './LongStorySettingsModal';
 import { Toolbar } from './Toolbar';
 import { Sidebar } from './Sidebar';
 import { EditorPaper } from './EditorPaper';
@@ -38,7 +39,8 @@ import {
   updateChapterOrder,
   proofreadContent,
   rewriteContent,
-  generateStory
+  generateStory,
+  generateLongStory
 } from '@/app/novel/[slug]/edit/actions';
 
 type Suggestion = {
@@ -76,6 +78,7 @@ type Novel = {
   id: string;
   title: string;
   synopsis?: string;
+  perspective?: string;
   // ... other fields
 };
 
@@ -99,6 +102,9 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [chapterStatus, setChapterStatus] = useState<string>('draft');
   const [episodeNumber, setEpisodeNumber] = useState<number | null>(null);
   
+  // Plot Lists State
+  const [plotLists, setPlotLists] = useState<any[]>([]);
+  
   // AI Mode State
   const [isAiMode, setIsAiMode] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -114,7 +120,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [isEditLoading, setIsEditLoading] = useState(false);
   const [writeChatInput, setWriteChatInput] = useState('');
   
-  // Write Modal State
+  // Write Modal State (Short Story)
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [writeSettings, setWriteSettings] = useState({
@@ -125,6 +131,18 @@ export default function Edit({ novel, initialActs }: EditProps) {
       useExistingContent: false,
       wordCount: '2000',
       pov: '一人称（私・僕）'
+  });
+
+  // Long Story Modal State
+  const [isLongStoryModalOpen, setIsLongStoryModalOpen] = useState(false);
+  const [isGeneratingLongStory, setIsGeneratingLongStory] = useState(false);
+  const [longStorySettings, setLongStorySettings] = useState({
+      instructions: '',
+      useCharacters: true,
+      usePlot: true,
+      useRelationships: false,
+      wordCount: '3000',
+      currentEpisode: 1
   });
 
   const IndentOnEnter = Extension.create({
@@ -163,6 +181,24 @@ export default function Edit({ novel, initialActs }: EditProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Fetch Plot Lists with Cards
+  useEffect(() => {
+      const fetchPlotLists = async () => {
+          const supabase = createClient();
+          const { data } = await supabase
+              .from('plot_lists')
+              .select('id, title, order_index, plot_cards(id, content, episode, order_index)')
+              .eq('novel_id', novel.id)
+              .order('order_index', { ascending: true });
+          
+          if (data) {
+              setPlotLists(data);
+          }
+      };
+      
+      fetchPlotLists();
+  }, [novel.id]);
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
@@ -320,6 +356,24 @@ export default function Edit({ novel, initialActs }: EditProps) {
     }
     return null;
   }, [acts, activeChapterId]);
+
+  // Get published chapters for long story generation
+  const publishedChapters = React.useMemo(() => {
+    const chapters: { episodeNumber: number; title: string; wordsCount: number; content: any }[] = [];
+    for (const act of acts) {
+      for (const chapter of act.chapters) {
+        if (chapter.status === 'published' && chapter.episode_number) {
+          chapters.push({
+            episodeNumber: chapter.episode_number,
+            title: chapter.title,
+            wordsCount: chapter.words_count || 0,
+            content: chapter.content
+          });
+        }
+      }
+    }
+    return chapters.sort((a, b) => a.episodeNumber - b.episodeNumber);
+  }, [acts]);
 
   // Sync URL with State and State with URL
   useEffect(() => {
@@ -859,6 +913,184 @@ export default function Edit({ novel, initialActs }: EditProps) {
     }
   };
 
+  // Long Story Generation Handler
+  const handleGenerateLongStoryExecute = async () => {
+    setIsGeneratingLongStory(true);
+    try {
+      const supabase = createClient();
+      
+      // Fetch characters if requested
+      let characterData = [];
+      if (longStorySettings.useCharacters) {
+        const { data } = await supabase
+          .from('characters')
+          .select('*')
+          .eq('novel_id', novel.id);
+        characterData = data || [];
+      }
+
+      // Fetch plot if requested
+      let plotData: any[] = [];
+      if (longStorySettings.usePlot) {
+        const { data: lists } = await supabase
+          .from('plot_lists')
+          .select('*, plot_cards(*)')
+          .eq('novel_id', novel.id)
+          .order('order_index', { ascending: true });
+        
+        if (lists) {
+            plotData = lists.map(list => {
+                // Always filter cards by currentEpisode
+                let cards = (list as any).plot_cards;
+                cards = cards.filter((c: any) => c.episode === longStorySettings.currentEpisode);
+
+                return {
+                    title: list.title,
+                    scenes: cards.sort((a: any, b: any) => a.order_index - b.order_index).map((card: any) => ({
+                        content: card.content,
+                        note: card.note
+                    }))
+                };
+            }).filter(data => data.scenes.length > 0); // Only include lists with matching scenes
+        }
+      }
+
+      // Fetch relationships if requested
+      let relationshipData: any[] = [];
+      if (longStorySettings.useRelationships) {
+        const { data } = await supabase
+          .from('relationships')
+          .select('*, source:characters!source_character_id(name), target:characters!target_character_id(name)')
+          .eq('novel_id', novel.id);
+        
+        if (data) {
+            relationshipData = data.map(rel => ({
+                from: (rel as any).source.name,
+                to: (rel as any).target.name,
+                label: rel.label,
+                type: rel.arrow_type
+            }));
+        }
+      }
+
+      // Extract text content from published chapters for pastContent
+      const extractTextFromContent = (content: any): string => {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        if (content.type === 'doc' && content.content) {
+          return content.content
+            .map((node: any) => {
+              if (node.type === 'paragraph' && node.content) {
+                return node.content.map((c: any) => c.text || '').join('');
+              }
+              return '';
+            })
+            .join('\n');
+        }
+        return '';
+      };
+
+      const pastContent = publishedChapters.map(ch => ({
+        episodeNumber: ch.episodeNumber,
+        title: ch.title,
+        content: extractTextFromContent(ch.content)
+      }));
+
+      const payload = {
+        data: {
+          title: novel?.title || "未設定",
+          overview: novel?.synopsis || "未設定",
+          pastContent: pastContent,
+          currentEpisode: longStorySettings.currentEpisode,
+          references: {
+            correlationMap: longStorySettings.useCharacters ? characterData : null,
+            plot: longStorySettings.usePlot ? plotData : null,
+            relationMap: longStorySettings.useRelationships ? relationshipData : null
+          },
+          config: {
+            targetLength: parseInt(longStorySettings.wordCount) || 3000,
+            perspective: novel?.perspective || "一人称",
+            instruction: longStorySettings.instructions
+          }
+        }
+      };
+
+      const result = await generateLongStory(payload);
+      
+      if (result.success && result.data && result.data.generatedStory) {
+        const { title, content } = result.data.generatedStory;
+        
+        // 現在のActに新規チャプターを作成
+        let targetActId = acts[0]?.id;
+        if (activeChapterId) {
+          const foundAct = acts.find(act => act.chapters.some(c => c.id === activeChapterId));
+          if (foundAct) targetActId = foundAct.id;
+        }
+
+        if (targetActId) {
+          const chapterTitle = `第${longStorySettings.currentEpisode}話: ${title}`;
+          const createResult = await createChapter(novel.id, targetActId, chapterTitle);
+          if (createResult.success && createResult.data) {
+            const newChapter = createResult.data;
+            
+            // チャプター内容を更新
+            const jsonContent = {
+              type: 'doc',
+              content: content.split('\n').map((line: string) => ({
+                type: 'paragraph',
+                content: line ? [{ type: 'text', text: line }] : []
+              }))
+            };
+
+            await updateChapterContent(newChapter.id, jsonContent, content.length);
+            
+            // 話数とステータスを設定
+            await updateChapterMeta(newChapter.id, novel.id, {
+              episode_number: longStorySettings.currentEpisode,
+              status: 'draft'
+            });
+            
+            // ローカルステート更新と遷移
+            setActs(prevActs => prevActs.map(act => {
+              if (act.id === targetActId) {
+                return {
+                  ...act,
+                  chapters: [...act.chapters, { 
+                    ...newChapter, 
+                    content: jsonContent, 
+                    words_count: content.length,
+                    episode_number: longStorySettings.currentEpisode,
+                    status: 'draft'
+                  }]
+                };
+              }
+              return act;
+            }));
+            
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('chapter', newChapter.id);
+            router.push(`${pathname}?${params.toString()}`);
+            
+            // 次の話数に更新
+            setLongStorySettings(prev => ({
+              ...prev,
+              currentEpisode: prev.currentEpisode + 1
+            }));
+            
+            setIsLongStoryModalOpen(false);
+          }
+        }
+      } else {
+        alert("生成に失敗しました。");
+      }
+    } catch (error) {
+      console.error("Generate Long Story Error:", error);
+      alert("エラーが発生しました。");
+    } finally {
+      setIsGeneratingLongStory(false);
+    }
+  };
+
   // Update editor content when active chapter changes
   useEffect(() => {
     if (editor && activeChapter) {
@@ -1252,6 +1484,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
                   handleApplyEdit={handleApplyEdit}
                   // Write
                   setIsWriteModalOpen={setIsWriteModalOpen}
+                  setIsLongStoryModalOpen={setIsLongStoryModalOpen}
                   writeChatInput={writeChatInput}
                   setWriteChatInput={setWriteChatInput}
                 />
@@ -1259,7 +1492,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
         </div>
       </main>
 
-      {/* Write Settings Modal */}
+      {/* Write Settings Modal (Short Story) */}
       <WriteSettingsModal 
         isOpen={isWriteModalOpen}
         onClose={() => setIsWriteModalOpen(false)}
@@ -1268,6 +1501,19 @@ export default function Edit({ novel, initialActs }: EditProps) {
         setWriteSettings={setWriteSettings}
         isGeneratingStory={isGeneratingStory}
         onExecute={handleGenerateStoryExecute}
+      />
+
+      {/* Long Story Settings Modal */}
+      <LongStorySettingsModal 
+        isOpen={isLongStoryModalOpen}
+        onClose={() => setIsLongStoryModalOpen(false)}
+        novel={novel}
+        longStorySettings={longStorySettings}
+        setLongStorySettings={setLongStorySettings}
+        isGenerating={isGeneratingLongStory}
+        onExecute={handleGenerateLongStoryExecute}
+        publishedChapters={publishedChapters}
+        plotLists={plotLists}
       />
 
       {/* Mobile Save FAB */}

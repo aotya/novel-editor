@@ -1597,6 +1597,210 @@ input:checked + .slider:before {
 
 
 
+/* Long Story Modal Styles */
+.publishedInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: var(--app-bg);
+    border-radius: 0.5rem;
+    border: 1px solid var(--app-border);
+}
+
+.publishedStat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.publishedStatLabel {
+    font-size: 0.875rem;
+    color: var(--app-text-muted);
+}
+
+.publishedStatValue {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--app-text);
+}
+
+.publishedChapterList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--app-border);
+}
+
+.publishedChapterItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0;
+}
+
+.publishedChapterEpisode {
+    color: var(--primary);
+    font-weight: 600;
+    min-width: 50px;
+}
+
+.publishedChapterTitle {
+    flex: 1;
+    color: var(--app-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.publishedChapterWords {
+    color: var(--app-text-muted);
+    font-size: 0.7rem;
+}
+
+.publishedChapterMore {
+    font-size: 0.75rem;
+    color: var(--app-text-muted);
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+.noPublishedChapters {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: var(--app-text-muted);
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.warningText {
+    font-size: 0.75rem;
+    color: #f59e0b;
+}
+
+/* Sub Setting Item (nested under settingItem) */
+.subSettingItem {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--app-bg);
+    border-radius: 0.5rem;
+    border: 1px solid var(--app-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.subSettingLabel {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--app-text);
+}
+
+.subSettingDescription {
+    font-size: 0.75rem;
+    color: var(--app-text-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.formSelect {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    background-color: var(--app-surface);
+    color: var(--app-text);
+    cursor: pointer;
+    transition: border-color 0.2s;
+
+    &:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    &:hover {
+        border-color: var(--primary);
+    }
+}
+
+/* Plot Preview */
+.plotPreview {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+}
+
+.plotPreviewHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--app-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.plotPreviewList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.plotPreviewItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.5rem;
+    background-color: var(--app-bg);
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+}
+
+.plotPreviewChapter {
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.6875rem;
+}
+
+.plotPreviewContent {
+    color: var(--app-text);
+    line-height: 1.4;
+}
+
+.plotPreviewMore {
+    font-size: 0.75rem;
+    color: var(--app-text-muted);
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+.plotPreviewEmpty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1rem;
+    color: #f59e0b;
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.plotPreviewEmptyHint {
+    font-size: 0.75rem;
+    color: var(--app-text-muted);
+    font-weight: 400;
+}
+
 .mobileOverlay {
     display: none;
     position: fixed;

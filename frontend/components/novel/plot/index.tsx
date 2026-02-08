@@ -31,6 +31,7 @@ type PlotCard = {
   content: string;
   note: string | null;
   order_index: number;
+  episode: number;
 };
 
 type PlotList = {
@@ -50,9 +51,10 @@ type SortableCardProps = {
   card: PlotCard;
   listId: string;
   onUpdateContent: (listId: string, cardId: string, content: string) => void;
+  onUpdateEpisode: (listId: string, cardId: string, episode: number) => void;
 };
 
-function SortableCard({ card, listId, onUpdateContent }: SortableCardProps) {
+function SortableCard({ card, listId, onUpdateContent, onUpdateEpisode }: SortableCardProps) {
   const {
     attributes,
     listeners,
@@ -76,6 +78,18 @@ function SortableCard({ card, listId, onUpdateContent }: SortableCardProps) {
       {...attributes}
       {...listeners}
     >
+      <div className={styles.episodeBadge}>
+        第 
+        <input 
+            type="number" 
+            min="1"
+            className={styles.episodeInput}
+            value={card.episode}
+            onChange={(e) => onUpdateEpisode(listId, card.id, parseInt(e.target.value) || 1)}
+            onPointerDown={(e) => e.stopPropagation()}
+        /> 
+        話
+      </div>
       <div className={styles.editIconWrapper}>
         <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
       </div>
@@ -170,7 +184,10 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
     // Combine
     const combinedLists: PlotList[] = listsData.map(list => ({
       ...list,
-      cards: cardsData.filter(c => c.list_id === list.id)
+      cards: cardsData.filter(c => c.list_id === list.id).map(c => ({
+        ...c,
+        episode: c.episode || 1 // Ensure episode exists
+      }))
     }));
 
     setLists(combinedLists);
@@ -207,6 +224,9 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
     if (!list) return;
 
     const newOrderIndex = list.cards.length;
+    // Default to the last card's episode or 1
+    const lastCard = list.cards[list.cards.length - 1];
+    const defaultEpisode = lastCard ? lastCard.episode : 1;
     
     const { data, error } = await supabase
       .from('plot_cards')
@@ -214,7 +234,8 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
         list_id: listId,
         content: 'New Scene',
         note: null,
-        order_index: newOrderIndex
+        order_index: newOrderIndex,
+        episode: defaultEpisode
       })
       .select()
       .single();
@@ -228,7 +249,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
     if (data) {
       setLists(prev => prev.map(l => {
         if (l.id === listId) {
-          return { ...l, cards: [...l.cards, data] };
+          return { ...l, cards: [...l.cards, { ...data, episode: data.episode || defaultEpisode }] };
         }
         return l;
       }));
@@ -254,6 +275,19 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
               return {
                   ...l,
                   cards: l.cards.map(c => c.id === cardId ? { ...c, content: newContent } : c)
+              };
+          }
+          return l;
+      }));
+  };
+
+  const handleUpdateCardEpisode = (listId: string, cardId: string, newEpisode: number) => {
+      // Optimistic update only - no DB call
+      setLists(prev => prev.map(l => {
+          if (l.id === listId) {
+              return {
+                  ...l,
+                  cards: l.cards.map(c => c.id === cardId ? { ...c, episode: newEpisode } : c)
               };
           }
           return l;
@@ -347,6 +381,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
             content: c.content,
             note: c.note,
             order_index: c.order_index,
+            episode: c.episode,
             updated_at: new Date().toISOString()
         })));
 
@@ -463,6 +498,7 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
                           card={card}
                           listId={list.id}
                           onUpdateContent={handleUpdateCardContent}
+                          onUpdateEpisode={handleUpdateCardEpisode}
                         />
                       ))}
                     </SortableContext>
@@ -498,6 +534,17 @@ export default function PlotBoard({ novelId, novelTitle }: Props) {
             <DragOverlay>
               {activeCard ? (
                 <div className={`${styles.card} ${styles.cardOverlay}`}>
+                  <div className={styles.episodeBadge}>
+                    第 
+                    <input 
+                        type="number" 
+                        min="1"
+                        className={styles.episodeInput}
+                        value={activeCard.episode}
+                        readOnly
+                    /> 
+                    話
+                  </div>
                   <div className={styles.editIconWrapper}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>drag_indicator</span>
                   </div>

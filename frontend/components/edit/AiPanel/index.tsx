@@ -29,6 +29,7 @@ type AiPanelProps = {
   handleApplyEdit: () => void;
   // Write Props
   setIsWriteModalOpen: (isOpen: boolean) => void;
+  setIsLongStoryModalOpen: (isOpen: boolean) => void;
   writeChatInput: string;
   setWriteChatInput: (input: string) => void;
 };
@@ -58,6 +59,7 @@ export const AiPanel = ({
   handleApplyEdit,
   // Write
   setIsWriteModalOpen,
+  setIsLongStoryModalOpen,
   writeChatInput,
   setWriteChatInput,
 }: AiPanelProps) => {
@@ -110,6 +112,7 @@ export const AiPanel = ({
         {activeTab === 'write' && (
           <WriteTab 
             setIsWriteModalOpen={setIsWriteModalOpen}
+            setIsLongStoryModalOpen={setIsLongStoryModalOpen}
             writeChatInput={writeChatInput}
             setWriteChatInput={setWriteChatInput}
           />

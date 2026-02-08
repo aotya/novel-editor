@@ -282,7 +282,7 @@ export async function rewriteContent(
   }
 }
 
-// AI Story Generation Action
+// AI Story Generation Action (Short Story)
 export async function generateStory(payload: any) {
   try {
     const session = await getRequiredSession();
@@ -307,6 +307,35 @@ export async function generateStory(payload: any) {
     return { success: true, data };
   } catch (error: any) {
     console.error("Generate Story API Error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// AI Long Story Generation Action
+export async function generateLongStory(payload: any) {
+  try {
+    const session = await getRequiredSession();
+    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
+
+    const response = await fetch(`${backendUrl}/api/generate-long-story`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Generate Long Story API Error:", error);
     return { success: false, error: error.message };
   }
 }

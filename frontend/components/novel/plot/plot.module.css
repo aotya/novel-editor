@@ -320,6 +320,30 @@
   cursor: grabbing;
 }
 
+.episodeBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.episodeInput {
+  width: 2.5rem;
+  background: transparent;
+  border: 1px solid var(--app-border);
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--app-text);
+}
+.episodeInput:focus {
+  border-color: #5552ea;
+  outline: none;
+}
+
 .cardText {
   width: 100%;
   background: transparent;
