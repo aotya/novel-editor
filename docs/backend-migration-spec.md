@@ -140,6 +140,7 @@ backend/
 
 ```typescript
 // backend/src/index.ts
+import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -172,14 +173,14 @@ app.route('/api', rewriteRoute);
 app.route('/api', generateStoryRoute);
 app.route('/api', generateLongStoryRoute);
 
-// サーバー起動
+// サーバー起動（@hono/node-server を使用して Node.js 上で HTTP サーバーを起動）
+// ※ export default { fetch: app.fetch } は Bun/Deno/Cloudflare Workers 向けの記法であり、
+//    Cloud Run (Node.js) では serve() で明示的にサーバーを起動する必要がある
 const port = Number(process.env.PORT) || 8080;
-console.log(`Server running on port ${port}`);
 
-export default {
-  port,
-  fetch: app.fetch,
-};
+serve({ fetch: app.fetch, port }, () => {
+  console.log(`Server running on port ${port}`);
+});
 ```
 
 ---
@@ -276,11 +277,11 @@ import { z } from 'zod';
 
 export const proofreadSchema = z.object({
   suggestions: z.array(z.object({
-    type: z.enum(['typo', 'grammar', 'style']),
+    type: z.string(),       // "typo" | "grammar" | "style"（z.enum ではなく z.string で柔軟に受ける）
     original: z.string(),
     suggestion: z.string(),
     reason: z.string(),
-    priority: z.enum(['high', 'medium', 'low']),
+    priority: z.string(),   // "high" | "medium" | "low"（同上）
   })),
 });
 ```
@@ -288,6 +289,7 @@ export const proofreadSchema = z.object({
 **ポイント**
 - `generateObject` + Zod スキーマにより、正規表現JSONパース（`parse_json_response`）が不要に
 - レスポンス形式はフロントエンドから見て同一
+- `type` や `priority` は `z.enum` ではなく `z.string()` を使用。AI が大文字/小文字を間違えたり微妙に異なる値を返すことがあるため、スキーマ側では柔軟に受け入れ、フロントエンド側でフォールバック処理を行う
 
 ---
 
@@ -335,7 +337,7 @@ export const rewriteSchema = z.object({
       type: z.string(),
       before: z.string(),
       after: z.string(),
-    })),
+    })).default([]),  // AI が省略した場合のフォールバック
   }),
 });
 ```
@@ -474,6 +476,18 @@ backend/src/ai/prompts/
 └── long-story-generator.ts # LONG_STORY_GENERATOR_PROMPT
 ```
 
+### プロンプト簡素化の方針
+
+`generateObject` は Zod スキーマを元に「このJSON構造で出力して」という指示を裏側で自動的に LLM に送る。  
+そのため、現行プロンプトにある以下の記述は **すべて削除** する：
+
+- 「必ず以下のJSON形式でのみ出力してください」
+- 「Markdownのコードブロックなどは含めないでください」
+- JSON のサンプル構造（`{ "suggestions": [...] }` 等）
+- 「空の配列を持つJSONを返してください」
+
+プロンプトには **役割定義** と **業務ルール** のみを記述する。
+
 ### 例: proofreader.ts
 
 ```typescript
@@ -481,12 +495,76 @@ export const PROOFREADER_PROMPT = `あなたはプロの校正者です。
 ユーザーから提供された小説のテキストを確認し、誤字脱字、文法の間違い、不適切な表現を見つけてください。
 
 修正案は、そのまま文章と入れ替える予定なので、修正案は文章として出力してください。
-そのままコピペできない文章は避けてください（提案は「修正の理由」に記載してください）
+そのままコピペできない文章は避けてください（提案は「修正の理由」に記載してください）。
 
 指摘事項がない場合は、空の配列を返してください。`;
 ```
 
-> **注意**: 現行のプロンプトにある JSON 出力形式の指示は、`generateObject` の Zod スキーマが自動で担うため、プロンプトからは削除する。
+### 例: rewriter.ts
+
+```typescript
+export const REWRITER_PROMPT = `あなたは熟練の小説リライター（推敲・改稿のプロ）です。
+ユーザーから提供された「小説の全文(fullText)」「書き換え対象のテキスト(selectedText)」「書き換え指示(instruction)」「文脈情報(context)」をもとに、対象部分をリライトしてください。
+
+**入力情報の扱い方:**
+1. **fullText**: 物語全体の流れやトーンを把握するために使います。
+2. **selectedText**: ここが今回書き換えるべき具体的な箇所です。
+3. **instruction**: どのように書き換えるかの具体的な指示です。
+4. **context**: キャラクターの設定やシーンの雰囲気などを考慮するために使います。
+
+**注意点:**
+- rewrittenText は、前後の文脈（fullTextの対象箇所の前後）と自然に繋がるようにしてください。
+- reason はユーザー（作者）にとって学びのある建設的な内容にしてください。
+- 指示が実行不可能な場合は success を false にしてください。`;
+```
+
+### 例: story-generator.ts
+
+```typescript
+export const STORY_GENERATOR_PROMPT = `あなたはプロの小説家アシスタントです。
+ユーザーから提供される小説の設定データに基づき、短編小説を執筆してください。
+
+**執筆ルール:**
+- config.targetLength で指定された文字数を目安に構成してください。
+- config.perspective（視点）を厳守してください。
+- config.instruction（追加指示）の内容を物語の核に据え、ユーザーの要望を最優先に反映させてください。
+- references フィールドに具体的なデータ（キャラクター設定、プロット、相関関係等）が含まれている場合、その設定を最大限尊重し、矛盾がないように執筆してください。
+- baseContent が提供されている場合、その内容を続きとして執筆するか、その文体や設定を色濃く反映させてください。
+
+**入力データの解釈:**
+- 入力されたJSONの各フィールド（title, overview, config, references, baseContent）を直接参照して執筆を行ってください。`;
+```
+
+### 例: long-story-generator.ts
+
+```typescript
+export const LONG_STORY_GENERATOR_PROMPT = `あなたは長編小説の執筆を行うプロの小説家です。
+ユーザーから提供される小説の設定データに基づき、指定された話数のエピソードを執筆してください。
+
+**執筆ルール:**
+- 第1話の場合（pastContentが空）: overview と references を元に、読者を引き込む魅力的な冒頭を執筆してください。
+- 第2話以降の場合（pastContentがある）: pastContent を熟読し、キャラクターの口調、行動原理、物語のトーン、既出の事実と矛盾しないように執筆してください。
+- 短編のように1回で完結させるのではなく、長編の一部としての役割（伏線の提示、展開、次章への引きなど）を意識してください。
+- config.targetLength で指定された文字数を目安に構成してください。
+- config.instruction がある場合、そのイベントや展開を必ず盛り込んでください。
+
+**入力データの解釈:**
+- title: 小説全体のタイトル
+- overview: 小説全体のあらすじ・概要
+- pastContent: これまでの執筆内容。各話は episodeNumber と content を持つ。空の場合は第1話を執筆。
+- currentEpisode: 今回執筆する話数
+- config: 執筆設定（targetLength, perspective, instruction）
+- references: キャラクター設定、世界観設定など
+
+**話数の確認:**
+- pastContent が空で currentEpisode が 1 なら第1話を執筆。
+- pastContent に既存の話がある場合、その続きとして自然な導入を心がけてください。
+
+**禁止事項:**
+- ユーザーの指示がない限り、物語を勝手に完結させないでください。
+- pastContent で確立された設定を無視しないでください。
+- 既に投稿済みの話数と矛盾する内容を書かないでください。`;
+```
 
 ---
 
@@ -606,6 +684,7 @@ services:
   },
   "dependencies": {
     "hono": "^4",
+    "@hono/node-server": "^1",
     "ai": "^4",
     "@ai-sdk/google": "^1",
     "jose": "^6",
@@ -685,7 +764,7 @@ AI_MODEL_STORY=gemini-2.5-flash
 1. `feature/migrate-backend-to-ts` ブランチを作成
 2. `backend/` 内の Python ファイルを退避（一時的に `backend/_python_backup/` 等に移動）
 3. `backend/` に TypeScript プロジェクトを初期化（`package.json`, `tsconfig.json`）
-4. パッケージインストール（`hono`, `ai`, `@ai-sdk/google`, `jose`, `zod`, `dotenv`, `tsx`, `typescript`）
+4. パッケージインストール（`hono`, `@hono/node-server`, `ai`, `@ai-sdk/google`, `jose`, `zod`, `dotenv`, `tsx`, `typescript`）
 5. `Dockerfile` と `Dockerfile.dev` を作成
 6. `.env` の環境変数名を更新
 
@@ -731,8 +810,8 @@ Cloud Run の設定（リージョン、メモリ、CPU、最小/最大インス
 
 | リスク | 対策 |
 |---|---|
-| `generateObject` がスキーマ通りに返さない場合 | Zod の `.catch()` / `.default()` でフォールバック値を設定 |
-| プロンプト移行時の出力品質の差異 | 移行後に各エンドポイントの出力を現行 Python 版と比較テスト |
+| AI が Zod スキーマの期待値と微妙に異なる値を返す | `z.enum` ではなく `z.string()` で柔軟に受け入れ、フロントエンド側でフォールバック。配列フィールドは `.default([])` を設定 |
+| プロンプト簡素化による出力品質の変化 | `generateObject` が JSON 指示を自動付与するため、プロンプトの重複指示を削除。移行後に各エンドポイントの出力を現行 Python 版と比較テスト |
 | Node.js の Cloud Run コールドスタート | Python とほぼ同等。マルチステージビルドで軽量化済み |
 | ローカル開発の Docker 再構築 | `node_modules` をボリュームで除外し、初回 `npm ci` 後はキャッシュ |
 
