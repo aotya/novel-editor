@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-export const rewriteSchema = z.object({
-  success: z.boolean(),
+const rewriteSuccessSchema = z.object({
+  success: z.literal(true),
   result: z.object({
     originalText: z.string(),
     rewrittenText: z.string(),
@@ -13,3 +13,15 @@ export const rewriteSchema = z.object({
     })).default([]),
   }),
 });
+
+const rewriteErrorSchema = z.object({
+  success: z.literal(false),
+  result: z.object({
+    error: z.string(),
+  }),
+});
+
+export const rewriteSchema = z.discriminatedUnion('success', [
+  rewriteSuccessSchema,
+  rewriteErrorSchema,
+]);

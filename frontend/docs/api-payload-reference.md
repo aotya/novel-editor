@@ -1,6 +1,15 @@
 # API Payload Reference
 
-このドキュメントは、バックエンドAPIに送信されるデータ形式をまとめたものです。
+このドキュメントは、バックエンドAPIに送信されるデータ形式をまとめたものです。  
+バックエンドは TypeScript (Hono + Vercel AI SDK) で実装されており、Cloud Run 上で動作します。
+
+---
+
+## 廃止されたエンドポイント
+
+| エンドポイント | 廃止理由 |
+|---|---|
+| `POST /api/edit` | フロントエンドで未使用のため、Python → TypeScript 移行時に廃止 |
 
 ---
 
@@ -11,26 +20,29 @@
 ### リクエスト
 
 ```typescript
-// EditRequest
 {
-  content: string  // 校正対象の本文テキスト
+  content: string  // 校正対象の本文テキスト（必須・空文字不可）
 }
 ```
 
-### レスポンス
+### レスポンス（成功時）
 
 ```typescript
 {
-  suggestions: [
-    {
-      type: "typo" | "grammar" | "style",
-      original: string,      // 元のテキスト
-      suggestion: string,    // 修正案
-      reason: string         // 修正理由
-    }
-  ]
+  suggestions: Array<{
+    type: string,         // "typo" | "grammar" | "style"
+    original: string,     // 誤っている箇所
+    suggestion: string,   // 修正案（そのまま置換可能な文章）
+    reason: string,       // 修正の理由
+    priority: string      // "high" | "medium" | "low"
+  }>
 }
 ```
+
+### 注意事項
+
+- `type` と `priority` は文字列型。AI が想定外の値を返す可能性があるため、フロントエンド側でフォールバック処理を行うこと
+- 指摘事項がない場合は `suggestions` が空配列になる
 
 ---
 
@@ -41,37 +53,57 @@
 ### リクエスト
 
 ```typescript
-// RewriteRequest
 {
   data: {
-    mode: "rewrite",
-    fullText: string,           // チャプター全体のテキスト
-    selectedText: string,       // 選択されたテキスト
-    instruction: string,        // リライト指示（例: "もっと緊迫感を出して"）
-    selectionRange: {
-      start: number,            // 選択開始位置
-      end: number               // 選択終了位置
+    fullText: string,           // チャプター全体のテキスト（必須）
+    selectedText: string,       // 選択されたテキスト（必須）
+    instruction: string,        // リライト指示（必須。例: "もっと緊迫感を出して"）
+    selectionRange: {           // 選択範囲（null可）
+      start: number,
+      end: number
     } | null,
-    context: {
-      chapterTitle: string,     // チャプタータイトル
-      characters: any[],        // キャラクター情報（未実装）
-      mood: string              // ムード（未実装）
+    context: {                  // 文脈情報（省略可）
+      chapterTitle: string,
+      characters: any[],
+      mood: string
     }
   }
 }
 ```
 
-### レスポンス
+### レスポンス（成功時）
 
 ```typescript
 {
+  success: true,
   result: {
-    originalText: string,    // 元のテキスト
-    rewrittenText: string,   // リライト後のテキスト
-    reason: string           // リライトの理由・説明
+    originalText: string,       // 元のテキスト（selectedText と同じ）
+    rewrittenText: string,      // リライト後のテキスト
+    reason: string,             // リライトの理由・狙った効果の解説
+    diffHighlights: Array<{     // 変更箇所のハイライト（空配列の場合あり）
+      type: string,             // "change"
+      before: string,           // 変更前のフレーズ
+      after: string             // 変更後のフレーズ
+    }>
   }
 }
 ```
+
+### レスポンス（失敗時 - AIが実行不可能と判断した場合）
+
+```typescript
+{
+  success: false,
+  result: {
+    error: string               // エラーの理由
+  }
+}
+```
+
+### 注意事項
+
+- `success` フィールドで成功/失敗を判別する
+- `diffHighlights` は AI が省略する場合があるため、空配列をデフォルト値として扱う
 
 ---
 
@@ -82,51 +114,42 @@
 ### リクエスト
 
 ```typescript
-// StoryGenRequest
 {
   data: {
     title: string,              // 小説タイトル
     overview: string,           // 小説のあらすじ・概要
     references: {
-      correlationMap: [         // キャラクター設定（null可）
-        {
-          id: string,
-          name: string,
-          age: string,
-          gender: string,
-          appearance: string,
-          first_person: string,   // 一人称（俺、私など）
-          second_person: string,  // 二人称
-          speech_style: string,   // 口調
-          personality: string,
-          sample_dialogue: string,
-          battle_type: string,
-          magic: string,
-          other_notes: string,
-          role: string,
-          bio: string,
-          is_main: boolean
-        }
-      ] | null,
-      plot: [                   // プロット（null可）
-        {
-          title: string,        // リスト名（例: "第1章"）
-          scenes: [
-            {
-              content: string,  // シーン内容
-              note: string      // メモ
-            }
-          ]
-        }
-      ] | null,
-      relationMap: [            // 相関図（null可）
-        {
-          from: string,         // キャラクター名（起点）
-          to: string,           // キャラクター名（終点）
-          label: string,        // 関係性ラベル（例: "幼馴染"）
-          type: "forward" | "reverse" | "bidirectional" | "none"
-        }
-      ] | null
+      correlationMap: Array<{   // キャラクター設定（null可）
+        id: string,
+        name: string,
+        age: string,
+        gender: string,
+        appearance: string,
+        first_person: string,
+        second_person: string,
+        speech_style: string,
+        personality: string,
+        sample_dialogue: string,
+        battle_type: string,
+        magic: string,
+        other_notes: string,
+        role: string,
+        bio: string,
+        is_main: boolean
+      }> | null,
+      plot: Array<{             // プロット（null可）
+        title: string,
+        scenes: Array<{
+          content: string,
+          note: string
+        }>
+      }> | null,
+      relationMap: Array<{      // 相関図（null可）
+        from: string,
+        to: string,
+        label: string,
+        type: "forward" | "reverse" | "bidirectional" | "none"
+      }> | null
     },
     baseContent: string | null, // 現在のエディタ内容（ベースにする場合）
     config: {
@@ -161,59 +184,48 @@
 ### リクエスト
 
 ```typescript
-// StoryGenRequest
 {
   data: {
     title: string,              // 小説タイトル
     overview: string,           // 小説全体のあらすじ・概要
-    pastContent: [              // 投稿済みエピソード一覧（話数順）
-      {
-        episodeNumber: number,  // 話数（1, 2, 3...）
-        title: string,          // その話のタイトル
-        content: string         // その話の本文（プレーンテキスト）
-      }
-    ],
+    pastContent: Array<{        // 投稿済みエピソード一覧（話数順）
+      episodeNumber: number,
+      title: string,
+      content: string
+    }>,
     currentEpisode: number,     // 今回執筆する話数
     references: {
-      correlationMap: [         // キャラクター設定（null可）
-        {
-          id: string,
-          name: string,
-          age: string,
-          gender: string,
-          appearance: string,
-          first_person: string,
-          second_person: string,
-          speech_style: string,
-          personality: string,
-          sample_dialogue: string,
-          battle_type: string,
-          magic: string,
-          other_notes: string,
-          role: string,
-          bio: string,
-          is_main: boolean
-        }
-      ] | null,
-      plot: [                   // プロット（null可）
-        {
-          title: string,
-          scenes: [
-            {
-              content: string,
-              note: string
-            }
-          ]
-        }
-      ] | null,
-      relationMap: [            // 相関図（null可）
-        {
-          from: string,
-          to: string,
-          label: string,
-          type: "forward" | "reverse" | "bidirectional" | "none"
-        }
-      ] | null
+      correlationMap: Array<{   // キャラクター設定（null可）
+        id: string,
+        name: string,
+        age: string,
+        gender: string,
+        appearance: string,
+        first_person: string,
+        second_person: string,
+        speech_style: string,
+        personality: string,
+        sample_dialogue: string,
+        battle_type: string,
+        magic: string,
+        other_notes: string,
+        role: string,
+        bio: string,
+        is_main: boolean
+      }> | null,
+      plot: Array<{             // プロット（null可）
+        title: string,
+        scenes: Array<{
+          content: string,
+          note: string
+        }>
+      }> | null,
+      relationMap: Array<{      // 相関図（null可）
+        from: string,
+        to: string,
+        label: string,
+        type: "forward" | "reverse" | "bidirectional" | "none"
+      }> | null
     },
     config: {
       targetLength: number,     // 希望文字数
@@ -258,9 +270,14 @@ Authorization: Bearer <supabase_access_token>
 ### エラーレスポンス
 
 ```typescript
-{
-  detail: string  // エラーメッセージ
-}
+// バリデーションエラー (400)
+{ detail: string }  // リクエスト内容の不備
+
+// 認証エラー (401)
+{ detail: string }  // トークン不正・期限切れ
+
+// サーバーエラー (500)
+{ detail: string }  // AI生成エラー等
 ```
 
 ### フロントエンドからの呼び出し
