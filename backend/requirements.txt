@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-google-genai
-python-dotenv
-pydantic
-PyJWT[crypto]
-requests

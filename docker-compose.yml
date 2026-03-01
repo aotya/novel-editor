@@ -21,7 +21,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "8080:8080"
     env_file:
@@ -30,4 +30,4 @@ services:
       - PORT=8080
     volumes:
       - ./backend:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+      - /app/node_modules
