@@ -1,0 +1,25 @@
+---
+description: CSS coding standards and API documentation rules for the project
+globs: ["**/*.css", "**/*.module.css", "**/*.tsx", "**/*.jsx", "**/*.ts", "**/*.py"]
+alwaysApply: true
+---
+
+# CSS Rules
+
+以下のCSSコーディング規約を遵守してください：
+
+- **CSSファイルの利用**: スタイルは全てCSSファイル（.css, .module.css）に記述してください。インラインスタイルは避けてください。
+- **命名規則**: クラス名にはキャメル記法（camelCase）を使用してください（例: `myClassName`）。
+- **ネスト記法**: CSSは可読性を高めるためネスト記法を使用して記述してください。
+- **アンパサンド（&）の使用制限**: `&` は擬似要素（`::before`, `::after`）や擬似クラス（`:hover`, `:focus`）の参照にのみ使用してください。クラス名の結合（例: `&__element`）には使用しないでください。
+
+# API Documentation Rules
+
+バックエンドAPIに変更を加えた場合は、以下のドキュメントも必ず更新してください：
+
+- **対象ファイル**: `novel/frontend/docs/api-payload-reference.md`
+- **更新が必要なケース**:
+  - 新しいAPIエンドポイントを追加した場合
+  - 既存APIのリクエスト/レスポンス形式を変更した場合
+  - APIのフィールドを追加・削除・変更した場合
+- **記載内容**: リクエスト形式（TypeScript型定義）、レスポンス形式、注意事項を含めてください。
