@@ -1,0 +1,443 @@
+.wrapper {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: var(--app-bg);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  position: relative;
+}
+
+.mobileHeader {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background-color: var(--app-surface);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 4px 20px -10px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem;
+  gap: 2.5rem;
+
+  @media (min-width: 768px) {
+    padding: 2.5rem;
+  }
+  @media (min-width: 1024px) {
+    padding: 3.5rem;
+  }
+}
+
+.mainLogoHeader {
+  display: flex;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+}
+
+.logoContainer {
+  display: flex;
+  
+  @media (max-width: 768px) {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
+}
+
+.headerSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--app-text);
+  line-height: 1.2;
+
+  @media (min-width: 768px) {
+    font-size: 2.5rem;
+  }
+}
+
+.subtitle {
+  color: var(--app-text-muted);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.actionGroup {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    width: auto;
+  }
+}
+
+.createButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+  color: #ffffff;
+  padding: 0 1.5rem;
+  height: 3rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+
+  @media (min-width: 768px) {
+    width: auto;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px -5px rgba(124, 58, 237, 0.5);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.controlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+  }
+}
+
+.filtersGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  
+  /* hide scrollbar */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    width: auto;
+    padding-bottom: 0;
+  }
+}
+
+.filterButton {
+  flex-shrink: 0;
+  display: flex;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: 9999px;
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border);
+  padding: 0 1rem;
+  transition: all 0.2s ease;
+  color: var(--app-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+
+  &:hover {
+    border-color: var(--primary);
+    background-color: var(--app-bg);
+    transform: translateY(-1px);
+  }
+}
+
+.filterIcon {
+  font-size: 1.25rem;
+  color: var(--app-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  padding-bottom: 4rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (min-width: 1440px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.newProjectCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 340px;
+  height: 100%;
+  border-radius: 1.5rem;
+  border: 2px dashed var(--app-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  background-color: transparent;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: var(--primary);
+    background-color: rgba(124, 58, 237, 0.03);
+    transform: translateY(-4px);
+
+    .plusIconCircle {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.4);
+      
+      .plusIcon {
+        color: white;
+      }
+    }
+  }
+}
+
+.plusIconCircle {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.plusIcon {
+  font-size: 2rem;
+  color: var(--app-text-muted);
+  transition: color 0.3s;
+}
+
+.newProjectText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.newProjectTitle {
+  color: var(--app-text);
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background-color: var(--app-surface);
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  height: 100%;
+  min-height: 340px;
+
+  &:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-6px);
+
+    .cardImage {
+      transform: scale(1.08);
+    }
+    .cardOverlayButton {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .cardTitle {
+      color: var(--primary);
+    }
+  }
+}
+
+.cardDraft {
+  opacity: 0.85;
+  background-color: var(--app-surface-muted);
+}
+
+.cardImageWrapper {
+  position: relative;
+  height: 14rem;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--app-bg);
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bgGradientPurple {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 100%);
+  }
+}
+
+.cardGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--app-surface) 0%, transparent 100%);
+  opacity: 0.3;
+}
+
+.cardOverlayButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.menuButton {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: white;
+    transform: scale(1.1);
+    color: var(--primary);
+  }
+}
+
+.cardContent {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--app-surface);
+}
+
+.cardTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--app-text);
+  transition: color 0.2s;
+  line-height: 1.4;
+  
+  /* 2行で省略 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardDescription {
+  color: var(--app-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  opacity: 0.8;
+}

@@ -1,0 +1,30 @@
+.logoWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.logoLight {
+  display: block;
+}
+
+.logoDark {
+  display: none;
+}
+
+:global([data-theme='dark']) .logoLight {
+  display: none;
+}
+
+:global([data-theme='dark']) .logoDark {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .logoLight {
+    display: none;
+  }
+  :root:not([data-theme='light']) .logoDark {
+    display: block;
+  }
+}
