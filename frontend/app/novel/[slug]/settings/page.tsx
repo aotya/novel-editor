@@ -9,8 +9,11 @@ export default async function NovelSettingsPage({ params }: { params: Params }) 
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
+  // getUser() でサーバー側の JWT 検証を行う。
+  // getSession() は Cookie をそのまま読むだけで Supabase サーバーへの検証が走らないため、
+  // オーナーシップチェックのような権限確認には getUser() を使う。
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     redirect('/login');
   }
 
@@ -27,7 +30,7 @@ export default async function NovelSettingsPage({ params }: { params: Params }) 
   }
 
   // Ensure the user owns this novel
-  if (novel.user_id !== session.user.id) {
+  if (novel.user_id !== user.id) {
     redirect('/');
   }
 
