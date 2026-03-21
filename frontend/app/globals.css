@@ -104,7 +104,7 @@ body {
 body {
   color: var(--app-text);
   background: var(--app-bg);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

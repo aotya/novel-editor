@@ -1,6 +1,7 @@
 import Logo from '@/public/logo.webp';
 import LogoDark from '@/public/logo_dark.webp';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './logo.module.css';
 
 type LogoProps = {
@@ -11,7 +12,7 @@ type LogoProps = {
 
 export default function LogoComponent({ width = 200, height = 55, className = '' }: LogoProps) {
     return (
-      <a href="/">
+      <Link href="/">
         <div className={`${styles.logoWrapper} ${className}`} style={{ width, height }}>
             <Image 
                 src={Logo} 
@@ -30,6 +31,6 @@ export default function LogoComponent({ width = 200, height = 55, className = ''
                 style={{ width: '100%', height: 'auto' }}
             />
         </div>
-      </a>
+      </Link>
     )
 }

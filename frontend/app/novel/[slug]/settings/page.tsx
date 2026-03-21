@@ -9,6 +9,9 @@ export default async function NovelSettingsPage({ params }: { params: Params }) 
   const { slug } = await params;
   const supabase = await createClient();
 
+  // getUser() でサーバー側の JWT 検証を行う。
+  // getSession() は Cookie をそのまま読むだけで Supabase サーバーへの検証が走らないため、
+  // オーナーシップチェックのような権限確認には getUser() を使う。
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect('/login');
