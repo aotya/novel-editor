@@ -1,5 +1,5 @@
 import React from 'react';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Edit from '@/components/edit';
 
@@ -9,37 +9,22 @@ export default async function EditPage({ params }: { params: Params }) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login');
-  }
+  // Fetch novel and acts in parallel
+  const [novelResult, actsResult] = await Promise.all([
+    supabase.from('novels').select('*').eq('id', slug).single(),
+    supabase.from('acts').select(`*, chapters (*)`).eq('novel_id', slug).order('order_index', { ascending: true }),
+  ]);
 
-  // Fetch novel
-  const { data: novel, error: novelError } = await supabase
-    .from('novels')
-    .select('*')
-    .eq('id', slug)
-    .single();
-
-  if (novelError || !novel) {
-    console.error('Error fetching novel:', novelError);
+  if (novelResult.error || !novelResult.data) {
+    console.error('Error fetching novel:', novelResult.error);
     notFound();
   }
 
-  // Fetch acts and chapters
-  let { data: acts, error: actsError } = await supabase
-    .from('acts')
-    .select(`
-      *,
-      chapters (
-        *
-      )
-    `)
-    .eq('novel_id', slug)
-    .order('order_index', { ascending: true });
+  const novel = novelResult.data;
+  let acts = actsResult.data;
 
-  if (actsError) {
-     console.error('Error fetching acts:', actsError);
+  if (actsResult.error) {
+    console.error('Error fetching acts:', actsResult.error);
   }
 
   // Auto-create initial Act and Chapter if none exist

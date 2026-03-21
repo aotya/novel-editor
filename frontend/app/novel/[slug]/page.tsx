@@ -1,5 +1,5 @@
 import React from 'react';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Novel from '@/components/novel';
 
@@ -9,42 +9,24 @@ export default async function NovelPage({ params }: { params: Params }) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login');
-  }
+  const [novelResult, chaptersResult, charactersResult] = await Promise.all([
+    supabase.from('novels').select('*').eq('id', slug).single(),
+    supabase.from('chapters').select('*', { count: 'exact', head: true }).eq('novel_id', slug),
+    supabase.from('characters').select('*', { count: 'exact', head: true }).eq('novel_id', slug),
+  ]);
 
-  // Fetch novel data
-  const { data: novel, error } = await supabase
-    .from('novels')
-    .select('*')
-    .eq('id', slug)
-    .single();
-
-  if (error || !novel) {
-    console.error('Error fetching novel:', error);
+  if (novelResult.error || !novelResult.data) {
+    console.error('Error fetching novel:', novelResult.error);
     notFound();
   }
-
-  // Fetch chapters count
-  const { count: chaptersCount } = await supabase
-    .from('chapters')
-    .select('*', { count: 'exact', head: true })
-    .eq('novel_id', slug);
-
-  // Fetch characters count
-  const { count: charactersCount } = await supabase
-    .from('characters')
-    .select('*', { count: 'exact', head: true })
-    .eq('novel_id', slug);
 
   return (
     <div>
       <Novel 
-        novel={novel} 
+        novel={novelResult.data} 
         stats={{
-          chapters: chaptersCount || 0,
-          characters: charactersCount || 0
+          chapters: chaptersResult.count || 0,
+          characters: charactersResult.count || 0
         }}
       />
     </div>

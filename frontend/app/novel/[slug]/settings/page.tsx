@@ -9,8 +9,8 @@ export default async function NovelSettingsPage({ params }: { params: Params }) 
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
     redirect('/login');
   }
 
@@ -27,7 +27,7 @@ export default async function NovelSettingsPage({ params }: { params: Params }) 
   }
 
   // Ensure the user owns this novel
-  if (novel.user_id !== user.id) {
+  if (novel.user_id !== session.user.id) {
     redirect('/');
   }
 

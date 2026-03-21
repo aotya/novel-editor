@@ -1,5 +1,5 @@
 import React from 'react';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import RelationshipsEditor from '@/components/novel/relationships';
 
@@ -9,49 +9,31 @@ export default async function RelationshipsPage({ params }: { params: Params }) 
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login');
-  }
-
   // Verify novel exists and user has access
-  const { data: novel, error } = await supabase
-    .from('novels')
-    .select('*')
-    .eq('id', slug)
-    .single();
+  const [novelResult, charsResult, relsResult] = await Promise.all([
+    supabase.from('novels').select('*').eq('id', slug).single(),
+    supabase.from('characters').select('*').eq('novel_id', slug).order('name'),
+    supabase.from('relationships').select('*').eq('novel_id', slug),
+  ]);
 
-  if (error || !novel) {
-    console.error('Error fetching novel:', error);
+  if (novelResult.error || !novelResult.data) {
+    console.error('Error fetching novel:', novelResult.error);
     notFound();
   }
 
-  // Fetch characters for the sidebar and canvas
-  const { data: characters, error: charsError } = await supabase
-    .from('characters')
-    .select('*')
-    .eq('novel_id', slug)
-    .order('name');
-    
-  if (charsError) {
-      console.error('Error fetching characters:', charsError);
+  if (charsResult.error) {
+    console.error('Error fetching characters:', charsResult.error);
   }
 
-  // Fetch relationships
-  const { data: relationships, error: relsError } = await supabase
-    .from('relationships')
-    .select('*')
-    .eq('novel_id', slug);
-
-  if (relsError) {
-      console.error('Error fetching relationships:', relsError);
+  if (relsResult.error) {
+    console.error('Error fetching relationships:', relsResult.error);
   }
 
   return (
     <RelationshipsEditor 
-      novel={novel} 
-      initialCharacters={characters || []} 
-      initialRelationships={relationships || []}
+      novel={novelResult.data} 
+      initialCharacters={charsResult.data || []} 
+      initialRelationships={relsResult.data || []}
     />
   );
 }
