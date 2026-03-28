@@ -4,6 +4,112 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getRequiredSession } from '@/lib/auth-utils'
 
+// ---- Story generation types ----
+
+type StoryReferenceOptions = {
+  useCharacters: boolean;
+  usePlot: boolean;
+  useRelationships: boolean;
+};
+
+export type GenerateStoryParams = {
+  novelId: string;
+  novelTitle: string;
+  novelSynopsis: string;
+  references: StoryReferenceOptions;
+  baseContent: string | null;
+  config: {
+    targetLength: number;
+    perspective: string;
+    instruction: string;
+  };
+};
+
+export type GenerateLongStoryParams = {
+  novelId: string;
+  novelTitle: string;
+  novelSynopsis: string;
+  novelPerspective: string;
+  references: StoryReferenceOptions;
+  currentEpisode: number;
+  pastContent: { episodeNumber: number; title: string; content: string }[];
+  config: {
+    targetLength: number;
+    instruction: string;
+  };
+};
+
+// ---- Private helpers ----
+
+type NovelReferences = {
+  characterData: Record<string, unknown>[];
+  plotData: { title: string; scenes: { content: string; note: string }[] }[];
+  relationshipData: { from: string; to: string; label: string; type: string }[];
+};
+
+async function fetchNovelReferences(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  novelId: string,
+  options: StoryReferenceOptions & { currentEpisode?: number }
+): Promise<NovelReferences> {
+  let characterData: Record<string, unknown>[] = [];
+  if (options.useCharacters) {
+    const { data } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('novel_id', novelId);
+    characterData = data || [];
+  }
+
+  let plotData: { title: string; scenes: { content: string; note: string }[] }[] = [];
+  if (options.usePlot) {
+    const { data: lists } = await supabase
+      .from('plot_lists')
+      .select('*, plot_cards(*)')
+      .eq('novel_id', novelId)
+      .order('order_index', { ascending: true });
+
+    if (lists) {
+      plotData = lists
+        .map((list: { title: string; plot_cards: { episode: number; order_index: number; content: string; note: string }[] }) => {
+          let cards = list.plot_cards;
+          if (options.currentEpisode !== undefined) {
+            cards = cards.filter(c => c.episode === options.currentEpisode);
+          }
+          return {
+            title: list.title,
+            scenes: cards
+              .sort((a, b) => a.order_index - b.order_index)
+              .map(card => ({ content: card.content, note: card.note })),
+          };
+        })
+        .filter((d: { scenes: unknown[] }) =>
+          options.currentEpisode === undefined || d.scenes.length > 0
+        );
+    }
+  }
+
+  let relationshipData: { from: string; to: string; label: string; type: string }[] = [];
+  if (options.useRelationships) {
+    const { data } = await supabase
+      .from('relationships')
+      .select('*, source:characters!source_character_id(name), target:characters!target_character_id(name)')
+      .eq('novel_id', novelId);
+
+    if (data) {
+      relationshipData = data.map((rel: { source: { name: string }; target: { name: string }; label: string; arrow_type: string }) => ({
+        from: rel.source.name,
+        to: rel.target.name,
+        label: rel.label,
+        type: rel.arrow_type,
+      }));
+    }
+  }
+
+  return { characterData, plotData, relationshipData };
+}
+
 export async function updateChapterContent(chapterId: string, content: any, wordsCount: number) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -283,19 +389,41 @@ export async function rewriteContent(
 }
 
 // AI Story Generation Action (Short Story)
-export async function generateStory(payload: any) {
+export async function generateStory(params: GenerateStoryParams) {
   try {
     const session = await getRequiredSession();
-    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
+    const supabase = await createClient();
+
+    const { characterData, plotData, relationshipData } = await fetchNovelReferences(
+      supabase,
+      params.novelId,
+      params.references
+    );
+
+    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080';
+    const payload = {
+      mode: 'story-gen',
+      data: {
+        title: params.novelTitle,
+        overview: params.novelSynopsis,
+        references: {
+          correlationMap: params.references.useCharacters ? characterData : null,
+          plot: params.references.usePlot ? plotData : null,
+          relationMap: params.references.useRelationships ? relationshipData : null,
+        },
+        baseContent: params.baseContent,
+        config: params.config,
+      },
+    };
 
     const response = await fetch(`${backendUrl}/api/generate-story`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify(payload),
-      cache: 'no-store'
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -305,26 +433,49 @@ export async function generateStory(payload: any) {
 
     const data = await response.json();
     return { success: true, data };
-  } catch (error: any) {
-    console.error("Generate Story API Error:", error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Generate Story API Error:', error);
+    return { success: false, error: message };
   }
 }
 
 // AI Long Story Generation Action
-export async function generateLongStory(payload: any) {
+export async function generateLongStory(params: GenerateLongStoryParams) {
   try {
     const session = await getRequiredSession();
-    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
+    const supabase = await createClient();
+
+    const { characterData, plotData, relationshipData } = await fetchNovelReferences(
+      supabase,
+      params.novelId,
+      { ...params.references, currentEpisode: params.currentEpisode }
+    );
+
+    const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080';
+    const payload = {
+      data: {
+        title: params.novelTitle,
+        overview: params.novelSynopsis,
+        pastContent: params.pastContent,
+        currentEpisode: params.currentEpisode,
+        references: {
+          correlationMap: params.references.useCharacters ? characterData : null,
+          plot: params.references.usePlot ? plotData : null,
+          relationMap: params.references.useRelationships ? relationshipData : null,
+        },
+        config: params.config,
+      },
+    };
 
     const response = await fetch(`${backendUrl}/api/generate-long-story`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify(payload),
-      cache: 'no-store'
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -334,8 +485,31 @@ export async function generateLongStory(payload: any) {
 
     const data = await response.json();
     return { success: true, data };
-  } catch (error: any) {
-    console.error("Generate Long Story API Error:", error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Generate Long Story API Error:', error);
+    return { success: false, error: message };
+  }
+}
+
+// Fetch plot lists with cards for a novel (used by Edit component)
+export async function fetchPlotListsForNovel(novelId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+
+    const { data, error } = await supabase
+      .from('plot_lists')
+      .select('id, title, order_index, plot_cards(id, content, episode, order_index)')
+      .eq('novel_id', novelId)
+      .order('order_index', { ascending: true });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data || [] };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Fetch Plot Lists Error:', error);
+    return { success: false, error: message };
   }
 }

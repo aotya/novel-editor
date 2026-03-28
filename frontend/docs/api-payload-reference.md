@@ -155,7 +155,6 @@
     config: {
       targetLength: number,     // 希望文字数
       perspective: string,      // 視点（例: "一人称（私・僕）"）
-      style: "novel",
       instruction: string       // 追加の指示
     }
   }
@@ -282,12 +281,88 @@ Authorization: Bearer <supabase_access_token>
 
 ### フロントエンドからの呼び出し
 
-フロントエンドでは Server Actions (`app/novel/[slug]/edit/actions.ts`) を経由してAPIを呼び出します。
+フロントエンドでは Server Actions (`app/novel/[slug]/edit/actions.ts`) を経由してAPIを呼び出します。  
+コンポーネントからクライアント側で直接 Supabase を叩くのではなく、Server Actions 内で参照データ取得・ペイロード組み立て・API呼び出しをまとめて行います。
+
+#### `generateStory(params: GenerateStoryParams)`
 
 ```typescript
-// 例: 長編生成
-const result = await generateLongStory(payload);
+type GenerateStoryParams = {
+  novelId: string;
+  novelTitle: string;
+  novelSynopsis: string;
+  references: {
+    useCharacters: boolean;
+    usePlot: boolean;
+    useRelationships: boolean;
+  };
+  baseContent: string | null;
+  config: {
+    targetLength: number;
+    perspective: string;
+    instruction: string;
+  };
+};
 
+// 呼び出し例
+const result = await generateStory({
+  novelId: novel.id,
+  novelTitle: novel.title,
+  novelSynopsis: novel.synopsis,
+  references: { useCharacters: true, usePlot: true, useRelationships: false },
+  baseContent: null,
+  config: { targetLength: 2000, perspective: '一人称（私・僕）', instruction: '' },
+});
+```
+
+#### `generateLongStory(params: GenerateLongStoryParams)`
+
+```typescript
+type GenerateLongStoryParams = {
+  novelId: string;
+  novelTitle: string;
+  novelSynopsis: string;
+  novelPerspective: string;
+  references: {
+    useCharacters: boolean;
+    usePlot: boolean;
+    useRelationships: boolean;
+  };
+  currentEpisode: number;
+  pastContent: { episodeNumber: number; title: string; content: string }[];
+  config: {
+    targetLength: number;
+    instruction: string;
+  };
+};
+
+// 呼び出し例
+const result = await generateLongStory({
+  novelId: novel.id,
+  novelTitle: novel.title,
+  novelSynopsis: novel.synopsis,
+  novelPerspective: novel.perspective,
+  references: { useCharacters: true, usePlot: true, useRelationships: false },
+  currentEpisode: 3,
+  pastContent: [{ episodeNumber: 1, title: '第1話', content: '...' }],
+  config: { targetLength: 3000, instruction: '' },
+});
+```
+
+#### `fetchPlotListsForNovel(novelId: string)`
+
+プロットリストとカードをサーバー側で取得します。`LongStorySettingsModal` の表示用データを提供します。
+
+```typescript
+const result = await fetchPlotListsForNovel(novel.id);
+if (result.success && result.data) {
+  setPlotLists(result.data);
+}
+```
+
+#### レスポンス形式（共通）
+
+```typescript
 if (result.success && result.data && result.data.generatedStory) {
   const { title, content, summary, aiComment } = result.data.generatedStory;
   // 処理...

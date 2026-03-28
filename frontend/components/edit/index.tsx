@@ -19,7 +19,6 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import styles from './edit.module.css';
-import { createClient } from '@/lib/supabase/client';
 import { AiHighlight } from './extensions/AiHighlight';
 import { AiPanel } from './AiPanel';
 import { WriteSettingsModal } from './WriteSettingsModal';
@@ -40,7 +39,8 @@ import {
   proofreadContent,
   rewriteContent,
   generateStory,
-  generateLongStory
+  generateLongStory,
+  fetchPlotListsForNovel,
 } from '@/app/novel/[slug]/edit/actions';
 
 type Suggestion = {
@@ -185,15 +185,9 @@ export default function Edit({ novel, initialActs }: EditProps) {
   // Fetch Plot Lists with Cards
   useEffect(() => {
       const fetchPlotLists = async () => {
-          const supabase = createClient();
-          const { data } = await supabase
-              .from('plot_lists')
-              .select('id, title, order_index, plot_cards(id, content, episode, order_index)')
-              .eq('novel_id', novel.id)
-              .order('order_index', { ascending: true });
-          
-          if (data) {
-              setPlotLists(data);
+          const result = await fetchPlotListsForNovel(novel.id);
+          if (result.success && result.data) {
+              setPlotLists(result.data);
           }
       };
       
@@ -786,77 +780,22 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const handleGenerateStoryExecute = async () => {
     setIsGeneratingStory(true);
     try {
-      const supabase = createClient();
-      
-      // Fetch characters if requested
-      let characterData = [];
-      if (writeSettings.useCharacters) {
-        const { data } = await supabase
-          .from('characters')
-          .select('*')
-          .eq('novel_id', novel.id);
-        characterData = data || [];
-      }
-
-      // Fetch plot if requested
-      let plotData: any[] = [];
-      if (writeSettings.usePlot) {
-        const { data: lists } = await supabase
-          .from('plot_lists')
-          .select('*, plot_cards(*)')
-          .eq('novel_id', novel.id)
-          .order('order_index', { ascending: true });
-        
-        if (lists) {
-            plotData = lists.map(list => ({
-                title: list.title,
-                scenes: (list as any).plot_cards.sort((a: any, b: any) => a.order_index - b.order_index).map((card: any) => ({
-                    content: card.content,
-                    note: card.note
-                }))
-            }));
-        }
-      }
-
-      // Fetch relationships if requested
-      let relationshipData: any[] = [];
-      if (writeSettings.useRelationships) {
-        const { data } = await supabase
-          .from('relationships')
-          .select('*, source:characters!source_character_id(name), target:characters!target_character_id(name)')
-          .eq('novel_id', novel.id);
-        
-        if (data) {
-            relationshipData = data.map(rel => ({
-                from: (rel as any).source.name,
-                to: (rel as any).target.name,
-                label: rel.label,
-                type: rel.arrow_type
-            }));
-        }
-      }
-
-      const payload = {
-        mode: "story-gen",
-        data: {
-          title: novel?.title || "未設定",
-          overview: novel?.synopsis || "未設定",
-          references: {
-            correlationMap: writeSettings.useCharacters ? characterData : null,
-            plot: writeSettings.usePlot ? plotData : null,
-            relationMap: writeSettings.useRelationships ? relationshipData : null
-          },
-          baseContent: writeSettings.useExistingContent ? editor?.getText() : null,
-          config: {
-            targetLength: parseInt(writeSettings.wordCount) || 2000,
-            perspective: writeSettings.pov,
-            style: "novel",
-            instruction: writeSettings.instructions
-          }
-        }
-      };
-
-      const result = await generateStory(payload);
+      const result = await generateStory({
+        novelId: novel.id,
+        novelTitle: novel?.title || '未設定',
+        novelSynopsis: novel?.synopsis || '未設定',
+        references: {
+          useCharacters: writeSettings.useCharacters,
+          usePlot: writeSettings.usePlot,
+          useRelationships: writeSettings.useRelationships,
+        },
+        baseContent: writeSettings.useExistingContent ? (editor?.getText() ?? null) : null,
+        config: {
+          targetLength: parseInt(writeSettings.wordCount) || 2000,
+          perspective: writeSettings.pov,
+          instruction: writeSettings.instructions,
+        },
+      });
       
       if (result.success && result.data && result.data.generatedStory) {
         const { title, content, summary, aiComment } = result.data.generatedStory;
@@ -917,71 +856,15 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const handleGenerateLongStoryExecute = async () => {
     setIsGeneratingLongStory(true);
     try {
-      const supabase = createClient();
-      
-      // Fetch characters if requested
-      let characterData = [];
-      if (longStorySettings.useCharacters) {
-        const { data } = await supabase
-          .from('characters')
-          .select('*')
-          .eq('novel_id', novel.id);
-        characterData = data || [];
-      }
-
-      // Fetch plot if requested
-      let plotData: any[] = [];
-      if (longStorySettings.usePlot) {
-        const { data: lists } = await supabase
-          .from('plot_lists')
-          .select('*, plot_cards(*)')
-          .eq('novel_id', novel.id)
-          .order('order_index', { ascending: true });
-        
-        if (lists) {
-            plotData = lists.map(list => {
-                // Always filter cards by currentEpisode
-                let cards = (list as any).plot_cards;
-                cards = cards.filter((c: any) => c.episode === longStorySettings.currentEpisode);
-
-                return {
-                    title: list.title,
-                    scenes: cards.sort((a: any, b: any) => a.order_index - b.order_index).map((card: any) => ({
-                        content: card.content,
-                        note: card.note
-                    }))
-                };
-            }).filter(data => data.scenes.length > 0); // Only include lists with matching scenes
-        }
-      }
-
-      // Fetch relationships if requested
-      let relationshipData: any[] = [];
-      if (longStorySettings.useRelationships) {
-        const { data } = await supabase
-          .from('relationships')
-          .select('*, source:characters!source_character_id(name), target:characters!target_character_id(name)')
-          .eq('novel_id', novel.id);
-        
-        if (data) {
-            relationshipData = data.map(rel => ({
-                from: (rel as any).source.name,
-                to: (rel as any).target.name,
-                label: rel.label,
-                type: rel.arrow_type
-            }));
-        }
-      }
-
-      // Extract text content from published chapters for pastContent
-      const extractTextFromContent = (content: any): string => {
+      const extractTextFromContent = (content: unknown): string => {
         if (!content) return '';
         if (typeof content === 'string') return content;
-        if (content.type === 'doc' && content.content) {
-          return content.content
-            .map((node: any) => {
+        const doc = content as { type?: string; content?: { type?: string; content?: { text?: string }[] }[] };
+        if (doc.type === 'doc' && doc.content) {
+          return doc.content
+            .map(node => {
               if (node.type === 'paragraph' && node.content) {
-                return node.content.map((c: any) => c.text || '').join('');
+                return node.content.map(c => c.text || '').join('');
               }
               return '';
             })
@@ -993,29 +876,26 @@ export default function Edit({ novel, initialActs }: EditProps) {
       const pastContent = publishedChapters.map(ch => ({
         episodeNumber: ch.episodeNumber,
         title: ch.title,
-        content: extractTextFromContent(ch.content)
+        content: extractTextFromContent(ch.content),
       }));
 
-      const payload = {
-        data: {
-          title: novel?.title || "未設定",
-          overview: novel?.synopsis || "未設定",
-          pastContent: pastContent,
-          currentEpisode: longStorySettings.currentEpisode,
-          references: {
-            correlationMap: longStorySettings.useCharacters ? characterData : null,
-            plot: longStorySettings.usePlot ? plotData : null,
-            relationMap: longStorySettings.useRelationships ? relationshipData : null
-          },
-          config: {
-            targetLength: parseInt(longStorySettings.wordCount) || 3000,
-            perspective: novel?.perspective || "一人称",
-            instruction: longStorySettings.instructions
-          }
-        }
-      };
-
-      const result = await generateLongStory(payload);
+      const result = await generateLongStory({
+        novelId: novel.id,
+        novelTitle: novel?.title || '未設定',
+        novelSynopsis: novel?.synopsis || '未設定',
+        novelPerspective: novel?.perspective || '一人称',
+        references: {
+          useCharacters: longStorySettings.useCharacters,
+          usePlot: longStorySettings.usePlot,
+          useRelationships: longStorySettings.useRelationships,
+        },
+        currentEpisode: longStorySettings.currentEpisode,
+        pastContent,
+        config: {
+          targetLength: parseInt(longStorySettings.wordCount) || 3000,
+          instruction: longStorySettings.instructions,
+        },
+      });
       
       if (result.success && result.data && result.data.generatedStory) {
         const { title, content } = result.data.generatedStory;
