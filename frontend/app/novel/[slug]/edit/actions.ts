@@ -464,7 +464,10 @@ export async function generateLongStory(params: GenerateLongStoryParams) {
           plot: params.references.usePlot ? plotData : null,
           relationMap: params.references.useRelationships ? relationshipData : null,
         },
-        config: params.config,
+        config: {
+          ...params.config,
+          perspective: params.novelPerspective,
+        },
       },
     };
 
