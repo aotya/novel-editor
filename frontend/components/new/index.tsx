@@ -116,7 +116,7 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
                 <span className={styles.helperText}>小説の語り口を選択してください。</span>
               </label>
               
-              <label className={styles.label} style={{flexGrow: 1}}>
+              <label className={`${styles.label} ${styles.flexGrow}`}>
                 <span className={styles.labelText}>概要 / オーバービュー</span>
                 <textarea 
                   name="synopsis"
@@ -127,7 +127,7 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
                 <span className={styles.helperText}>Write a brief elevator pitch or summary. You can expand on this later.</span>
               </label>
 
-              <label className={styles.label} style={{flexGrow: 1}}>
+              <label className={`${styles.label} ${styles.flexGrow}`}>
                 <span className={styles.labelText}>世界観</span>
                 <textarea 
                   name="world_setting"

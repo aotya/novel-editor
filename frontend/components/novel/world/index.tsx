@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from './world.module.css';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -38,7 +38,7 @@ export default function WorldElementEditor({ novelId }: Props) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [formData, setFormData] = useState<WorldElement>(EMPTY_ELEMENT);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -234,8 +234,8 @@ export default function WorldElementEditor({ novelId }: Props) {
 
   if (loading) {
     return (
-      <div className={styles.container} style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#a29db8' }}>Loading...</p>
+      <div className={`${styles.container} ${styles.loadingContainer}`}>
+        <p className={styles.loadingText}>Loading...</p>
       </div>
     );
   }
@@ -250,7 +250,7 @@ export default function WorldElementEditor({ novelId }: Props) {
         </div>
         <div className={styles.headerRight}>
           <div className={styles.navLinks}>
-            <Link className={styles.navLink} href="#">Dashboard</Link>
+            <Link className={styles.navLink} href="/">Dashboard</Link>
           </div>
         </div>
       </header>
@@ -272,14 +272,13 @@ export default function WorldElementEditor({ novelId }: Props) {
                 onClick={() => handleElementSelect(el.id)}
               >
                 <div
-                  className={styles.elementIcon}
+                  className={`${styles.elementIcon} ${!el.imageUrl ? styles.emptyIcon : ''}`}
                   style={{
                     backgroundImage: el.imageUrl ? `url("${el.imageUrl}")` : undefined,
-                    backgroundColor: !el.imageUrl ? '#353345' : undefined,
                   }}
                 >
                   {!el.imageUrl && (
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#a29db8' }}>public</span>
+                    <span className={`material-symbols-outlined ${styles.listIcon}`}>public</span>
                   )}
                 </div>
                 <div className={styles.elementInfo}>
@@ -341,41 +340,39 @@ export default function WorldElementEditor({ novelId }: Props) {
                     <input
                       type="file"
                       accept="image/png, image/jpeg, image/gif, image/webp, image/svg+xml"
-                      style={{ display: 'none' }}
+                      className={styles.hiddenInput}
                       onChange={handleImageUpload}
                       disabled={uploadingImage}
                     />
                     <div
-                      className={styles.photoPreview}
+                      className={`${styles.photoPreview} ${uploadingImage ? styles.uploading : ''}`}
                       style={{
                         backgroundImage: formData.imageUrl ? `url("${formData.imageUrl}")` : undefined,
-                        backgroundColor: !formData.imageUrl ? '#2b2938' : undefined,
-                        opacity: uploadingImage ? 0.5 : 1,
                       }}
                     >
                       {uploadingImage ? (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#a29db8' }}>refresh</span>
+                        <div className={styles.iconContainer}>
+                          <span className={`material-symbols-outlined ${styles.loadingIcon}`}>refresh</span>
                         </div>
                       ) : !formData.imageUrl && (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#403c53' }}>public</span>
+                        <div className={styles.iconContainer}>
+                          <span className={`material-symbols-outlined ${styles.defaultIcon}`}>public</span>
                         </div>
                       )}
                     </div>
                     <div className={styles.photoOverlay}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'white', marginBottom: '8px' }}>add_a_photo</span>
-                      <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <span className={`material-symbols-outlined ${styles.overlayIcon}`}>add_a_photo</span>
+                      <span className={styles.overlayText}>
                         {uploadingImage ? 'Uploading...' : 'Upload Image'}
                       </span>
                     </div>
                     <div className={styles.editIconBadge}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', display: 'block' }}>edit</span>
+                      <span className={`material-symbols-outlined ${styles.editIcon}`}>edit</span>
                     </div>
                   </label>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ color: 'white', fontSize: '14px', fontWeight: 500 }}>アイコン画像</p>
-                    <p style={{ color: '#a29db8', fontSize: '12px', marginTop: '2px' }}>Recommended size: 400x400px</p>
+                  <div className={styles.photoHint}>
+                    <p className={styles.photoHintTitle}>アイコン画像</p>
+                    <p className={styles.photoHintSubtitle}>Recommended size: 400x400px</p>
                   </div>
                 </div>
 
@@ -455,13 +452,11 @@ export default function WorldElementEditor({ novelId }: Props) {
                     className={styles.photoPreview}
                     style={{
                       backgroundImage: formData.imageUrl ? `url("${formData.imageUrl}")` : undefined,
-                      backgroundColor: !formData.imageUrl ? '#2b2938' : undefined,
-                      margin: '0 auto 1.5rem auto',
                     }}
                   >
                     {!formData.imageUrl && (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#403c53' }}>public</span>
+                      <div className={styles.iconContainer}>
+                        <span className={`material-symbols-outlined ${styles.defaultIcon}`}>public</span>
                       </div>
                     )}
                   </div>
@@ -469,7 +464,7 @@ export default function WorldElementEditor({ novelId }: Props) {
                   <p className={styles.viewCategory}>{formData.category}</p>
                 </div>
 
-                <div className={styles.divider} style={{ marginBottom: '2rem' }} />
+                <div className={styles.divider} />
 
                 <div className={styles.viewSection}>
                   <div className={styles.viewLabel}>

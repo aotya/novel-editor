@@ -156,7 +156,8 @@
         id: string,
         name: string,
         category: string,       // "国家" | "組織" | "制度" | "宗教" | "地域" | "その他"
-        description: string
+        description: string,
+        image_url: string       // 画像URL
       }> | null
     },
     baseContent: string | null, // 現在のエディタ内容（ベースにする場合）
@@ -239,7 +240,8 @@
         id: string,
         name: string,
         category: string,       // "国家" | "組織" | "制度" | "宗教" | "地域" | "その他"
-        description: string
+        description: string,
+        image_url: string       // 画像URL
       }> | null
     },
     config: {
