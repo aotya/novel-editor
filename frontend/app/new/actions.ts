@@ -16,6 +16,7 @@ export async function createNovel(formData: FormData) {
   const title = formData.get('title') as string
   const synopsis = formData.get('synopsis') as string
   const perspective = formData.get('perspective') as string
+  const world_setting = formData.get('world_setting') as string
 
   const { error } = await supabase
     .from('novels')
@@ -24,6 +25,7 @@ export async function createNovel(formData: FormData) {
       title,
       synopsis,
       perspective,
+      world_setting,
       status: 'draft',
     })
 
@@ -47,6 +49,7 @@ export async function updateNovel(novelId: string, formData: FormData) {
   const title = formData.get('title') as string
   const synopsis = formData.get('synopsis') as string
   const perspective = formData.get('perspective') as string
+  const world_setting = formData.get('world_setting') as string
 
   const { error } = await supabase
     .from('novels')
@@ -54,6 +57,7 @@ export async function updateNovel(novelId: string, formData: FormData) {
       title,
       synopsis,
       perspective,
+      world_setting,
     })
     .eq('id', novelId)
     .eq('user_id', user.id) // Ensure security
@@ -114,6 +118,12 @@ export async function deleteNovel(novelId: string) {
   // Delete relationships
   await supabase
     .from('relationships')
+    .delete()
+    .eq('novel_id', novelId)
+
+  // Delete world elements
+  await supabase
+    .from('world_elements')
     .delete()
     .eq('novel_id', novelId)
 

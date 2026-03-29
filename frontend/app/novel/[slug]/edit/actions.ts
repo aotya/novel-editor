@@ -10,12 +10,14 @@ type StoryReferenceOptions = {
   useCharacters: boolean;
   usePlot: boolean;
   useRelationships: boolean;
+  useWorldElements: boolean;
 };
 
 export type GenerateStoryParams = {
   novelId: string;
   novelTitle: string;
   novelSynopsis: string;
+  novelWorldSetting?: string;
   references: StoryReferenceOptions;
   baseContent: string | null;
   config: {
@@ -29,6 +31,7 @@ export type GenerateLongStoryParams = {
   novelId: string;
   novelTitle: string;
   novelSynopsis: string;
+  novelWorldSetting?: string;
   novelPerspective: string;
   references: StoryReferenceOptions;
   currentEpisode: number;
@@ -45,8 +48,13 @@ type NovelReferences = {
   characterData: Record<string, unknown>[];
   plotData: { title: string; scenes: { content: string; note: string }[] }[];
   relationshipData: { from: string; to: string; label: string; type: string }[];
+  worldElementData: Record<string, unknown>[];
 };
 
+/**
+ * 小説の参照データ（キャラクター、プロット、相関図、世界観）をDBから取得するヘルパー関数
+ * AI生成APIに渡すためのデータを準備します。
+ */
 async function fetchNovelReferences(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -107,9 +115,22 @@ async function fetchNovelReferences(
     }
   }
 
-  return { characterData, plotData, relationshipData };
+  let worldElementData: Record<string, unknown>[] = [];
+  if (options.useWorldElements) {
+    const { data } = await supabase
+      .from('world_elements')
+      .select('*')
+      .eq('novel_id', novelId)
+      .order('created_at', { ascending: true });
+    worldElementData = data || [];
+  }
+
+  return { characterData, plotData, relationshipData, worldElementData };
 }
 
+/**
+ * チャプター（エピソード）の本文内容と文字数を更新する
+ */
 export async function updateChapterContent(chapterId: string, content: any, wordsCount: number) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -134,6 +155,9 @@ export async function updateChapterContent(chapterId: string, content: any, word
   return { success: true }
 }
 
+/**
+ * 新しいAct（章・部）を作成する
+ */
 export async function createAct(novelId: string, title: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -166,6 +190,9 @@ export async function createAct(novelId: string, title: string) {
   return { success: true, data }
 }
 
+/**
+ * 指定したAct（章・部）を削除する
+ */
 export async function deleteAct(actId: string, novelId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -182,6 +209,9 @@ export async function deleteAct(actId: string, novelId: string) {
   return { success: true }
 }
 
+/**
+ * 指定したAct（章・部）の中に新しいチャプター（エピソード）を作成する
+ */
 export async function createChapter(novelId: string, actId: string, title: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -217,6 +247,9 @@ export async function createChapter(novelId: string, actId: string, title: strin
   return { success: true, data }
 }
 
+/**
+ * 指定したチャプターを削除する
+ */
 export async function deleteChapter(chapterId: string, novelId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -233,6 +266,9 @@ export async function deleteChapter(chapterId: string, novelId: string) {
   return { success: true }
 }
 
+/**
+ * Act（章・部）の名前を変更する
+ */
 export async function renameAct(actId: string, novelId: string, title: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -249,8 +285,11 @@ export async function renameAct(actId: string, novelId: string, title: string) {
   return { success: true }
 }
 
+/**
+ * チャプターのタイトルを更新する
+ */
 export async function updateChapterTitle(chapterId: string, novelId: string, title: string) {
-    const supabase = await createClient()
+  const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
   
@@ -265,6 +304,9 @@ export async function updateChapterTitle(chapterId: string, novelId: string, tit
     return { success: true }
 }
 
+/**
+ * チャプターのメタデータ（ステータス、エピソード番号など）を更新する
+ */
 export async function updateChapterMeta(
   chapterId: string, 
   novelId: string, 
@@ -285,6 +327,10 @@ export async function updateChapterMeta(
     return { success: true }
 }
 
+/**
+ * チャプターの並び順（order_index）と所属Act（act_id）を一括更新する
+ * ドラッグ＆ドロップによる並び替え時に呼ばれます。
+ */
 export async function updateChapterOrder(novelId: string, updates: { id: string, order_index: number, act_id?: string }[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -314,6 +360,9 @@ export async function updateChapterOrder(novelId: string, updates: { id: string,
 }
 
 // AI Proofreading Action
+/**
+ * AIによる校正（誤字脱字・文法チェック）を実行する
+ */
 export async function proofreadContent(content: string) {
   try {
     const session = await getRequiredSession()
@@ -343,6 +392,9 @@ export async function proofreadContent(content: string) {
 }
 
 // AI Rewriting Action
+/**
+ * AIによる文章のリライト（書き直し・表現の改善）を実行する
+ */
 export async function rewriteContent(
     fullText: string, 
     selectedText: string, 
@@ -389,12 +441,15 @@ export async function rewriteContent(
 }
 
 // AI Story Generation Action (Short Story)
+/**
+ * AIによる短編小説（または1話完結のストーリー）の生成を実行する
+ */
 export async function generateStory(params: GenerateStoryParams) {
   try {
     const session = await getRequiredSession();
     const supabase = await createClient();
 
-    const { characterData, plotData, relationshipData } = await fetchNovelReferences(
+    const { characterData, plotData, relationshipData, worldElementData } = await fetchNovelReferences(
       supabase,
       params.novelId,
       params.references
@@ -406,10 +461,12 @@ export async function generateStory(params: GenerateStoryParams) {
       data: {
         title: params.novelTitle,
         overview: params.novelSynopsis,
+        worldSetting: params.novelWorldSetting || null,
         references: {
           correlationMap: params.references.useCharacters ? characterData : null,
           plot: params.references.usePlot ? plotData : null,
           relationMap: params.references.useRelationships ? relationshipData : null,
+          worldElements: params.references.useWorldElements ? worldElementData : null,
         },
         baseContent: params.baseContent,
         config: params.config,
@@ -441,12 +498,15 @@ export async function generateStory(params: GenerateStoryParams) {
 }
 
 // AI Long Story Generation Action
+/**
+ * AIによる長編小説の続き（指定した話数のエピソード）の生成を実行する
+ */
 export async function generateLongStory(params: GenerateLongStoryParams) {
   try {
     const session = await getRequiredSession();
     const supabase = await createClient();
 
-    const { characterData, plotData, relationshipData } = await fetchNovelReferences(
+    const { characterData, plotData, relationshipData, worldElementData } = await fetchNovelReferences(
       supabase,
       params.novelId,
       { ...params.references, currentEpisode: params.currentEpisode }
@@ -457,12 +517,14 @@ export async function generateLongStory(params: GenerateLongStoryParams) {
       data: {
         title: params.novelTitle,
         overview: params.novelSynopsis,
+        worldSetting: params.novelWorldSetting || null,
         pastContent: params.pastContent,
         currentEpisode: params.currentEpisode,
         references: {
           correlationMap: params.references.useCharacters ? characterData : null,
           plot: params.references.usePlot ? plotData : null,
           relationMap: params.references.useRelationships ? relationshipData : null,
+          worldElements: params.references.useWorldElements ? worldElementData : null,
         },
         config: {
           ...params.config,
@@ -496,6 +558,10 @@ export async function generateLongStory(params: GenerateLongStoryParams) {
 }
 
 // Fetch plot lists with cards for a novel (used by Edit component)
+/**
+ * 小説のプロットリストとそれに紐づくプロットカードをすべて取得する
+ * （長編生成時の話数ごとのプロット参照などに使用）
+ */
 export async function fetchPlotListsForNovel(novelId: string) {
   try {
     const supabase = await createClient();

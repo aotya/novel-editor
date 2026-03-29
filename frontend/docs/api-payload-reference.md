@@ -118,12 +118,14 @@
   data: {
     title: string,              // 小説タイトル
     overview: string,           // 小説のあらすじ・概要
+    worldSetting: string | null, // 世界観の設定（null可）
     references: {
       correlationMap: Array<{   // キャラクター設定（null可）
         id: string,
         name: string,
         age: string,
         gender: string,
+        affiliation: string,    // 所属する国・組織
         appearance: string,
         first_person: string,
         second_person: string,
@@ -149,6 +151,13 @@
         to: string,
         label: string,
         type: "forward" | "reverse" | "bidirectional" | "none"
+      }> | null,
+      worldElements: Array<{    // 世界要素（国・組織・制度など）（null可）
+        id: string,
+        name: string,
+        category: string,       // "国家" | "組織" | "制度" | "宗教" | "地域" | "その他"
+        description: string,
+        image_url: string       // 画像URL
       }> | null
     },
     baseContent: string | null, // 現在のエディタ内容（ベースにする場合）
@@ -187,6 +196,7 @@
   data: {
     title: string,              // 小説タイトル
     overview: string,           // 小説全体のあらすじ・概要
+    worldSetting: string | null, // 世界観の設定（null可）
     pastContent: Array<{        // 投稿済みエピソード一覧（話数順）
       episodeNumber: number,
       title: string,
@@ -199,6 +209,7 @@
         name: string,
         age: string,
         gender: string,
+        affiliation: string,    // 所属する国・組織
         appearance: string,
         first_person: string,
         second_person: string,
@@ -224,6 +235,13 @@
         to: string,
         label: string,
         type: "forward" | "reverse" | "bidirectional" | "none"
+      }> | null,
+      worldElements: Array<{    // 世界要素（国・組織・制度など）（null可）
+        id: string,
+        name: string,
+        category: string,       // "国家" | "組織" | "制度" | "宗教" | "地域" | "その他"
+        description: string,
+        image_url: string       // 画像URL
       }> | null
     },
     config: {
@@ -291,10 +309,12 @@ type GenerateStoryParams = {
   novelId: string;
   novelTitle: string;
   novelSynopsis: string;
+  novelWorldSetting?: string;
   references: {
     useCharacters: boolean;
     usePlot: boolean;
     useRelationships: boolean;
+    useWorldElements: boolean;
   };
   baseContent: string | null;
   config: {
@@ -309,7 +329,8 @@ const result = await generateStory({
   novelId: novel.id,
   novelTitle: novel.title,
   novelSynopsis: novel.synopsis,
-  references: { useCharacters: true, usePlot: true, useRelationships: false },
+  novelWorldSetting: novel.world_setting,
+  references: { useCharacters: true, usePlot: true, useRelationships: false, useWorldElements: true },
   baseContent: null,
   config: { targetLength: 2000, perspective: '一人称（私・僕）', instruction: '' },
 });
@@ -322,11 +343,13 @@ type GenerateLongStoryParams = {
   novelId: string;
   novelTitle: string;
   novelSynopsis: string;
+  novelWorldSetting?: string;
   novelPerspective: string;
   references: {
     useCharacters: boolean;
     usePlot: boolean;
     useRelationships: boolean;
+    useWorldElements: boolean;
   };
   currentEpisode: number;
   pastContent: { episodeNumber: number; title: string; content: string }[];
@@ -341,8 +364,9 @@ const result = await generateLongStory({
   novelId: novel.id,
   novelTitle: novel.title,
   novelSynopsis: novel.synopsis,
+  novelWorldSetting: novel.world_setting,
   novelPerspective: novel.perspective,
-  references: { useCharacters: true, usePlot: true, useRelationships: false },
+  references: { useCharacters: true, usePlot: true, useRelationships: false, useWorldElements: true },
   currentEpisode: 3,
   pastContent: [{ episodeNumber: 1, title: '第1話', content: '...' }],
   config: { targetLength: 3000, instruction: '' },

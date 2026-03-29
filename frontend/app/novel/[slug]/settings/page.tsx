@@ -39,7 +39,8 @@ export default async function NovelSettingsPage({ params }: { params: Params }) 
       initialData={{
         title: novel.title,
         synopsis: novel.synopsis,
-        perspective: novel.perspective
+        perspective: novel.perspective,
+        worldSetting: novel.world_setting
       }}
       novelId={novel.id}
       backHref={`/novel/${novel.id}`}

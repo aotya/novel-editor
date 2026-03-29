@@ -6,6 +6,10 @@
   background-color: var(--app-bg);
 }
 
+.flexGrow {
+  flex-grow: 1;
+}
+
 .header {
   display: flex;
   align-items: center;

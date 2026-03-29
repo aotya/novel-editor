@@ -11,6 +11,7 @@ type NewProps = {
     title: string;
     synopsis: string | null;
     perspective?: string | null;
+    worldSetting?: string | null;
   };
   novelId?: string;
   backHref?: string;
@@ -115,7 +116,7 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
                 <span className={styles.helperText}>小説の語り口を選択してください。</span>
               </label>
               
-              <label className={styles.label} style={{flexGrow: 1}}>
+              <label className={`${styles.label} ${styles.flexGrow}`}>
                 <span className={styles.labelText}>概要 / オーバービュー</span>
                 <textarea 
                   name="synopsis"
@@ -124,6 +125,17 @@ export default function New({ initialData, novelId, backHref = "/" }: NewProps) 
                   defaultValue={initialData?.synopsis || ''}
                 ></textarea>
                 <span className={styles.helperText}>Write a brief elevator pitch or summary. You can expand on this later.</span>
+              </label>
+
+              <label className={`${styles.label} ${styles.flexGrow}`}>
+                <span className={styles.labelText}>世界観</span>
+                <textarea 
+                  name="world_setting"
+                  className={styles.textarea} 
+                  placeholder="時代背景、魔法体系、技術レベル、特有の制度や文化など..."
+                  defaultValue={initialData?.worldSetting || ''}
+                ></textarea>
+                <span className={styles.helperText}>小説の世界の設定を自由に記述してください。AI生成の参照情報として活用されます。</span>
               </label>
 
               <div className={styles.footerActions}>

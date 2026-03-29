@@ -79,6 +79,7 @@ type Novel = {
   title: string;
   synopsis?: string;
   perspective?: string;
+  world_setting?: string;
   // ... other fields
 };
 
@@ -128,6 +129,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
       useCharacters: true,
       usePlot: true,
       useRelationships: false,
+      useWorldElements: true,
       useExistingContent: false,
       wordCount: '2000',
       pov: '一人称（私・僕）'
@@ -141,6 +143,7 @@ export default function Edit({ novel, initialActs }: EditProps) {
       useCharacters: true,
       usePlot: true,
       useRelationships: false,
+      useWorldElements: true,
       wordCount: '3000',
       currentEpisode: 1
   });
@@ -784,10 +787,12 @@ export default function Edit({ novel, initialActs }: EditProps) {
         novelId: novel.id,
         novelTitle: novel?.title || '未設定',
         novelSynopsis: novel?.synopsis || '未設定',
+        novelWorldSetting: novel?.world_setting || undefined,
         references: {
           useCharacters: writeSettings.useCharacters,
           usePlot: writeSettings.usePlot,
           useRelationships: writeSettings.useRelationships,
+          useWorldElements: writeSettings.useWorldElements,
         },
         baseContent: writeSettings.useExistingContent ? (editor?.getText() ?? null) : null,
         config: {
@@ -883,11 +888,13 @@ export default function Edit({ novel, initialActs }: EditProps) {
         novelId: novel.id,
         novelTitle: novel?.title || '未設定',
         novelSynopsis: novel?.synopsis || '未設定',
+        novelWorldSetting: novel?.world_setting || undefined,
         novelPerspective: novel?.perspective || '一人称',
         references: {
           useCharacters: longStorySettings.useCharacters,
           usePlot: longStorySettings.usePlot,
           useRelationships: longStorySettings.useRelationships,
+          useWorldElements: longStorySettings.useWorldElements,
         },
         currentEpisode: longStorySettings.currentEpisode,
         pastContent,
