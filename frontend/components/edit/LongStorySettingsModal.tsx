@@ -6,6 +6,7 @@ type LongStorySettings = {
   useCharacters: boolean;
   usePlot: boolean;
   useRelationships: boolean;
+  useWorldElements: boolean;
   wordCount: string;
   currentEpisode: number;
 };
@@ -296,6 +297,23 @@ export const LongStorySettingsModal = ({
                   type="checkbox" 
                   checked={longStorySettings.useRelationships}
                   onChange={(e) => setLongStorySettings({...longStorySettings, useRelationships: e.target.checked})}
+                />
+                <span className={styles.slider}></span>
+              </label>
+            </div>
+
+            <div className={styles.settingItem}>
+              <div className={styles.settingItemLeft}>
+                <div className={`${styles.settingItemIcon} ${styles.settingItemIconTeal}`}>
+                  <span className="material-symbols-outlined">public</span>
+                </div>
+                <span className={styles.settingItemLabel}>世界観・国/組織情報の読み取り</span>
+              </div>
+              <label className={styles.switch}>
+                <input 
+                  type="checkbox" 
+                  checked={longStorySettings.useWorldElements}
+                  onChange={(e) => setLongStorySettings({...longStorySettings, useWorldElements: e.target.checked})}
                 />
                 <span className={styles.slider}></span>
               </label>

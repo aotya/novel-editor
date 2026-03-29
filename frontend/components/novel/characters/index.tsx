@@ -13,6 +13,7 @@ type Character = {
   role: string;
   age: string;
   gender: string;
+  affiliation: string;
   description: string;
   appearance: string;
   firstPerson: string;
@@ -37,6 +38,7 @@ const EMPTY_CHARACTER: Character = {
   role: '主人公',
   age: '',
   gender: 'Male',
+  affiliation: '',
   description: '',
   appearance: '',
   firstPerson: '',
@@ -103,6 +105,7 @@ export default function CharacterEditor({ novelId }: Props) {
           role: char.role || '主人公',
           age: char.age || '',
           gender: char.gender || 'Male',
+          affiliation: char.affiliation || '',
           description: char.bio || '', // Map bio to description
           appearance: char.appearance || '',
           firstPerson: char.first_person || '',
@@ -219,6 +222,7 @@ export default function CharacterEditor({ novelId }: Props) {
       role: formData.role,
       age: formData.age,
       gender: formData.gender,
+      affiliation: formData.affiliation,
       bio: formData.description, // Map description to bio
       appearance: formData.appearance,
       first_person: formData.firstPerson,
@@ -472,6 +476,17 @@ export default function CharacterEditor({ novelId }: Props) {
                   />
                 </div>
 
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label}>所属（国・組織）</label>
+                  <input 
+                    className={styles.input} 
+                    type="text" 
+                    value={formData.affiliation}
+                    onChange={(e) => handleInputChange('affiliation', e.target.value)}
+                    placeholder="例：エルディア帝国、賢者の塔など"
+                  />
+                </div>
+
                 <div className={styles.divider}></div>
 
                 <div className={styles.fieldGroup}>
@@ -645,6 +660,9 @@ export default function CharacterEditor({ novelId }: Props) {
                   
                   <h2 className={styles.viewName}>{formData.name}</h2>
                   <p className={styles.viewRole}>{formData.role} • {formData.age} • {formData.gender}</p>
+                  {formData.affiliation && (
+                    <p className={styles.viewRole}>{formData.affiliation}</p>
+                  )}
                 </div>
 
                 <div className={styles.divider} style={{marginBottom: '2rem'}}></div>

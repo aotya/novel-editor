@@ -480,3 +480,20 @@
     color: #fbbf24;
   }
 }
+
+.iconTeal {
+  background-color: #f0fdfa;
+  color: #0d9488;
+}
+
+:global([data-theme='dark']) .iconTeal {
+  background-color: rgba(19, 78, 74, 0.2);
+  color: #2dd4bf;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .iconTeal {
+    background-color: rgba(19, 78, 74, 0.2);
+    color: #2dd4bf;
+  }
+}

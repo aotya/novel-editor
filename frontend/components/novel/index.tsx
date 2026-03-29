@@ -172,6 +172,20 @@ export default function Novel({ novel, stats }: NovelProps) {
                 <span className={`material-symbols-outlined ${styles.arrowIcon}`}>arrow_forward</span>
               </div>
             </Link>
+
+            {/* World Elements */}
+            <Link href={`/novel/${novel.id}/world`} className={styles.card}>
+              <div>
+                <div className={`${styles.cardIconWrapper} ${styles.iconTeal}`}>
+                  <span className="material-symbols-outlined" style={{fontSize: '30px'}}>public</span>
+                </div>
+                <h3 className={styles.cardTitle}>World Elements</h3>
+                <p className={styles.cardSubtitle}>国・組織・制度などの設定</p>
+              </div>
+              <div className={styles.cardFooter}>
+                <span className={`material-symbols-outlined ${styles.arrowIcon}`}>arrow_forward</span>
+              </div>
+            </Link>
           </div>
 
         </main>

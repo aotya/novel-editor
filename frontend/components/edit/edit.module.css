@@ -1502,6 +1502,11 @@
     color: #94a3b8;
 }
 
+.settingItemIconTeal {
+    background-color: #f0fdfa;
+    color: #0d9488;
+}
+
 .settingItemLabel {
     font-size: 1rem;
     font-weight: 500;
