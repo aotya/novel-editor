@@ -1,6 +1,14 @@
 import React from 'react';
 import styles from '../edit.module.css';
 
+type EditReferences = {
+  useCharacters: boolean;
+  usePlot: boolean;
+  useRelationships: boolean;
+  useWorldElements: boolean;
+  usePastContent: boolean;
+};
+
 type EditTabProps = {
   isEditLoading: boolean;
   editResult: { original: string; suggestion: string; reason: string } | null;
@@ -13,6 +21,9 @@ type EditTabProps = {
   handleEditQuickInstruction: (text: string) => void;
   handleGenerateEditSuggestion: () => Promise<void>;
   handleApplyEdit: () => void;
+  editReferences: EditReferences;
+  setEditReferences: (refs: EditReferences) => void;
+  publishedChaptersCount: number;
 };
 
 export const EditTab = ({
@@ -27,6 +38,9 @@ export const EditTab = ({
   handleEditQuickInstruction,
   handleGenerateEditSuggestion,
   handleApplyEdit,
+  editReferences,
+  setEditReferences,
+  publishedChaptersCount,
 }: EditTabProps) => {
   if (isEditLoading) {
     return (
@@ -75,11 +89,38 @@ export const EditTab = ({
           </div>
         </div>
 
+        {editTargetRange === 'all' && (
+          <div>
+            <div className={styles.sectionLabel}>参照データ</div>
+            <div className={styles.editRefToggles}>
+              {[
+                { key: 'useCharacters' as const, label: 'キャラクター', icon: 'person' },
+                { key: 'usePlot' as const, label: 'プロット', icon: 'description' },
+                { key: 'useRelationships' as const, label: '相関図', icon: 'account_tree' },
+                { key: 'useWorldElements' as const, label: '世界観', icon: 'public' },
+                { key: 'usePastContent' as const, label: `過去話 (${publishedChaptersCount})`, icon: 'history' },
+              ].map(item => (
+                <label key={item.key} className={styles.editRefToggleItem}>
+                  <input
+                    type="checkbox"
+                    checked={editReferences[item.key]}
+                    onChange={(e) => setEditReferences({ ...editReferences, [item.key]: e.target.checked })}
+                  />
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{item.icon}</span>
+                  <span>{item.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className={styles.sectionLabel}>指示内容</div>
           <textarea 
             className={styles.instructionTextarea}
-            placeholder="例：○○という設定を踏まえて書き直して..."
+            placeholder={editTargetRange === 'all' 
+              ? "例：描写を肉付けして、情景描写や心理描写を充実させて..." 
+              : "例：○○という設定を踏まえて書き直して..."}
             value={editInstruction}
             onChange={(e) => setEditInstruction(e.target.value)}
           />
@@ -91,7 +132,7 @@ export const EditTab = ({
           disabled={!editInstruction || (editTargetRange === 'selection' && selectionLength === 0)}
         >
           <span className="material-symbols-outlined">auto_fix</span>
-          修正案を作成する
+          {editTargetRange === 'all' ? '肉付けを実行する' : '修正案を作成する'}
         </button>
       </div>
     );

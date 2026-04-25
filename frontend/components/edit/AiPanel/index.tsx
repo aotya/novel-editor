@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from '../edit.module.css';
-import { ProofreadTab, Suggestion } from './ProofreadTab';
+import { ProofreadTab } from './ProofreadTab';
+import type { Suggestion } from './ProofreadTab';
 import { EditTab } from './EditTab';
 import { WriteTab } from './WriteTab';
 
@@ -27,6 +28,21 @@ type AiPanelProps = {
   handleEditQuickInstruction: (text: string) => void;
   handleGenerateEditSuggestion: () => Promise<void>;
   handleApplyEdit: () => void;
+  editReferences: {
+    useCharacters: boolean;
+    usePlot: boolean;
+    useRelationships: boolean;
+    useWorldElements: boolean;
+    usePastContent: boolean;
+  };
+  setEditReferences: (refs: {
+    useCharacters: boolean;
+    usePlot: boolean;
+    useRelationships: boolean;
+    useWorldElements: boolean;
+    usePastContent: boolean;
+  }) => void;
+  publishedChaptersCount: number;
   // Write Props
   setIsWriteModalOpen: (isOpen: boolean) => void;
   setIsLongStoryModalOpen: (isOpen: boolean) => void;
@@ -57,6 +73,9 @@ export const AiPanel = ({
   handleEditQuickInstruction,
   handleGenerateEditSuggestion,
   handleApplyEdit,
+  editReferences,
+  setEditReferences,
+  publishedChaptersCount,
   // Write
   setIsWriteModalOpen,
   setIsLongStoryModalOpen,
@@ -107,6 +126,9 @@ export const AiPanel = ({
             handleEditQuickInstruction={handleEditQuickInstruction}
             handleGenerateEditSuggestion={handleGenerateEditSuggestion}
             handleApplyEdit={handleApplyEdit}
+            editReferences={editReferences}
+            setEditReferences={setEditReferences}
+            publishedChaptersCount={publishedChaptersCount}
           />
         )}
         {activeTab === 'write' && (

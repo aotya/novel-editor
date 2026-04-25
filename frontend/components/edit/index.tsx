@@ -42,6 +42,7 @@ import {
   generateLongStory,
   fetchPlotListsForNovel,
 } from '@/app/novel/[slug]/edit/actions';
+import type { RewriteEnrichmentParams } from '@/app/novel/[slug]/edit/actions';
 
 type Suggestion = {
   id: string;
@@ -120,6 +121,13 @@ export default function Edit({ novel, initialActs }: EditProps) {
   const [editResult, setEditResult] = useState<{original: string, suggestion: string, reason: string} | null>(null);
   const [isEditLoading, setIsEditLoading] = useState(false);
   const [writeChatInput, setWriteChatInput] = useState('');
+  const [editReferences, setEditReferences] = useState({
+    useCharacters: true,
+    usePlot: true,
+    useRelationships: false,
+    useWorldElements: true,
+    usePastContent: true,
+  });
   
   // Write Modal State (Short Story)
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
@@ -734,11 +742,26 @@ export default function Edit({ novel, initialActs }: EditProps) {
 
         const context = {
             chapterTitle: activeChapter?.title || '',
-            characters: [], // TODO: Extract characters
-            mood: '' // TODO: Analyze mood
         };
 
-        const result = await rewriteContent(fullText, selectedText, editInstruction, selectionRange, context);
+        let enrichmentParams: RewriteEnrichmentParams | undefined;
+        if (editTargetRange === 'all') {
+            enrichmentParams = {
+                novelId: novel.id,
+                novelTitle: novel?.title || '',
+                novelSynopsis: novel?.synopsis || '',
+                novelWorldSetting: novel?.world_setting || undefined,
+                references: {
+                    useCharacters: editReferences.useCharacters,
+                    usePlot: editReferences.usePlot,
+                    useRelationships: editReferences.useRelationships,
+                    useWorldElements: editReferences.useWorldElements,
+                },
+                usePastContent: editReferences.usePastContent,
+            };
+        }
+
+        const result = await rewriteContent(fullText, selectedText, editInstruction, selectionRange, context, enrichmentParams);
 
         if (result.success && result.data && result.data.result) {
             setEditResult({
@@ -1369,6 +1392,9 @@ export default function Edit({ novel, initialActs }: EditProps) {
                   handleEditQuickInstruction={handleEditQuickInstruction}
                   handleGenerateEditSuggestion={handleGenerateEditSuggestion}
                   handleApplyEdit={handleApplyEdit}
+                  editReferences={editReferences}
+                  setEditReferences={setEditReferences}
+                  publishedChaptersCount={publishedChapters.length}
                   // Write
                   setIsWriteModalOpen={setIsWriteModalOpen}
                   setIsLongStoryModalOpen={setIsLongStoryModalOpen}

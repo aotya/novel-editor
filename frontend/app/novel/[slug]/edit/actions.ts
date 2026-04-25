@@ -392,29 +392,100 @@ export async function proofreadContent(content: string) {
 }
 
 // AI Rewriting Action
+
+export type RewriteEnrichmentParams = {
+  novelId: string;
+  novelTitle: string;
+  novelSynopsis: string;
+  novelWorldSetting?: string;
+  references: StoryReferenceOptions;
+  usePastContent: boolean;
+};
+
 /**
  * AIによる文章のリライト（書き直し・表現の改善）を実行する
+ * enrichmentParams が渡された場合は全文肉付けモード（参照データを読み込む）
  */
 export async function rewriteContent(
     fullText: string, 
     selectedText: string, 
     instruction: string, 
     selectionRange: {start: number, end: number} | null, 
-    context: any
+    context: any,
+    enrichmentParams?: RewriteEnrichmentParams
 ) {
   try {
     const session = await getRequiredSession()
     const backendUrl = process.env.BACKEND_API_URL || 'http://backend:8080'
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {
+        fullText,
+        selectedText,
+        instruction,
+        selectionRange,
+        context
+    };
+
+    if (enrichmentParams) {
+      const supabase = await createClient();
+
+      const { characterData, plotData, relationshipData, worldElementData } = await fetchNovelReferences(
+        supabase,
+        enrichmentParams.novelId,
+        enrichmentParams.references
+      );
+
+      data.novelTitle = enrichmentParams.novelTitle || '';
+      data.novelSynopsis = enrichmentParams.novelSynopsis || '';
+      data.worldSetting = enrichmentParams.novelWorldSetting || null;
+      data.references = {
+        correlationMap: enrichmentParams.references.useCharacters ? characterData : null,
+        plot: enrichmentParams.references.usePlot ? plotData : null,
+        relationMap: enrichmentParams.references.useRelationships ? relationshipData : null,
+        worldElements: enrichmentParams.references.useWorldElements ? worldElementData : null,
+      };
+
+      if (enrichmentParams.usePastContent) {
+        const { data: chapters } = await supabase
+          .from('chapters')
+          .select('episode_number, title, content')
+          .eq('novel_id', enrichmentParams.novelId)
+          .eq('status', 'published')
+          .not('episode_number', 'is', null)
+          .order('episode_number', { ascending: true });
+
+        if (chapters && chapters.length > 0) {
+          data.pastContent = chapters.map((ch: { episode_number: number; title: string; content: unknown }) => {
+            let text = '';
+            if (typeof ch.content === 'string') {
+              text = ch.content;
+            } else if (ch.content && typeof ch.content === 'object') {
+              const doc = ch.content as { type?: string; content?: { type?: string; content?: { text?: string }[] }[] };
+              if (doc.type === 'doc' && doc.content) {
+                text = doc.content
+                  .map(node => {
+                    if (node.type === 'paragraph' && node.content) {
+                      return node.content.map(c => c.text || '').join('');
+                    }
+                    return '';
+                  })
+                  .join('\n');
+              }
+            }
+            return {
+              episodeNumber: ch.episode_number,
+              title: ch.title,
+              content: text,
+            };
+          });
+        }
+      }
+    }
+
     const payload = {
         mode: "rewrite",
-        data: {
-            fullText,
-            selectedText,
-            instruction,
-            selectionRange,
-            context
-        }
+        data
     };
 
     const response = await fetch(`${backendUrl}/api/rewrite`, {
@@ -432,8 +503,8 @@ export async function rewriteContent(
         throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    const responseData = await response.json();
+    return { success: true, data: responseData };
   } catch (error: any) {
     console.error("Rewrite API Error:", error);
     return { success: false, error: error.message };

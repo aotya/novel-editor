@@ -48,7 +48,8 @@
 
 ## 2. `/api/rewrite` - リライトAPI
 
-選択範囲のテキストを指示に従ってリライトします。
+選択範囲のテキストを指示に従ってリライトします。  
+「全体」モード時は参照データ（キャラクター・プロット・相関図・世界観・過去話）を含めて全文の肉付け・拡張を行います。
 
 ### リクエスト
 
@@ -63,10 +64,44 @@
       end: number
     } | null,
     context: {                  // 文脈情報（省略可）
-      chapterTitle: string,
-      characters: any[],
-      mood: string
-    }
+      chapterTitle: string
+    },
+    // --- 以下は「全体」モード（肉付け）時のみ送信 ---
+    novelTitle?: string,        // 小説タイトル
+    novelSynopsis?: string,     // 小説のあらすじ・概要
+    worldSetting?: string | null, // 世界観の設定
+    references?: {              // 参照データ（省略可）
+      correlationMap: Array<{   // キャラクター設定（null可）
+        id: string,
+        name: string,
+        // ... 他のキャラクターフィールド（generate-story と同形式）
+      }> | null,
+      plot: Array<{             // プロット（null可）
+        title: string,
+        scenes: Array<{
+          content: string,
+          note: string
+        }>
+      }> | null,
+      relationMap: Array<{      // 相関図（null可）
+        from: string,
+        to: string,
+        label: string,
+        type: string
+      }> | null,
+      worldElements: Array<{    // 世界要素（null可）
+        id: string,
+        name: string,
+        category: string,
+        description: string,
+        image_url: string
+      }> | null
+    },
+    pastContent?: Array<{       // 投稿済みエピソード（省略可）
+      episodeNumber: number,
+      title: string,
+      content: string
+    }>
   }
 }
 ```
@@ -104,6 +139,8 @@
 
 - `success` フィールドで成功/失敗を判別する
 - `diffHighlights` は AI が省略する場合があるため、空配列をデフォルト値として扱う
+- `references` / `pastContent` が含まれている場合、AIは全文肉付けモードとして動作する（部分リライトではなく全体の描写拡充）
+- `references` / `pastContent` が含まれていない場合、AIは従来の部分リライトモードとして動作する
 
 ---
 
@@ -301,6 +338,37 @@ Authorization: Bearer <supabase_access_token>
 
 フロントエンドでは Server Actions (`app/novel/[slug]/edit/actions.ts`) を経由してAPIを呼び出します。  
 コンポーネントからクライアント側で直接 Supabase を叩くのではなく、Server Actions 内で参照データ取得・ペイロード組み立て・API呼び出しをまとめて行います。
+
+#### `rewriteContent(fullText, selectedText, instruction, selectionRange, context, enrichmentParams?)`
+
+```typescript
+type RewriteEnrichmentParams = {
+  novelId: string;
+  novelTitle: string;
+  novelSynopsis: string;
+  novelWorldSetting?: string;
+  references: {
+    useCharacters: boolean;
+    usePlot: boolean;
+    useRelationships: boolean;
+    useWorldElements: boolean;
+  };
+  usePastContent: boolean;
+};
+
+// 部分リライト（選択範囲のみ）
+const result = await rewriteContent(fullText, selectedText, instruction, selectionRange, context);
+
+// 全文肉付け（参照データ付き）
+const result = await rewriteContent(fullText, selectedText, instruction, selectionRange, context, {
+  novelId: novel.id,
+  novelTitle: novel.title,
+  novelSynopsis: novel.synopsis,
+  novelWorldSetting: novel.world_setting,
+  references: { useCharacters: true, usePlot: true, useRelationships: false, useWorldElements: true },
+  usePastContent: true,
+});
+```
 
 #### `generateStory(params: GenerateStoryParams)`
 
