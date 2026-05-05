@@ -763,15 +763,16 @@ export default function Edit({ novel, initialActs }: EditProps) {
 
         const result = await rewriteContent(fullText, selectedText, editInstruction, selectionRange, context, enrichmentParams);
 
-        if (result.success && result.data && result.data.result) {
+        if (result.success && result.data && result.data.success === true && result.data.result) {
             setEditResult({
                 original: result.data.result.originalText || selectedText,
                 suggestion: result.data.result.rewrittenText,
                 reason: result.data.result.reason
             });
         } else {
-             console.error("Failed to generate edit:", result);
-             alert("生成に失敗しました。");
+            const apiError = result.data?.result?.error;
+            console.error("Failed to generate edit:", result);
+            alert(apiError ? `生成に失敗しました：${apiError}` : "生成に失敗しました。");
         }
 
     } catch (e) {

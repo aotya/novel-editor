@@ -1148,6 +1148,10 @@
     }
 }
 
+.editRefToggleIcon {
+    font-size: 1rem;
+}
+
 .instructionTextarea {
     width: 100%;
     min-height: 120px;

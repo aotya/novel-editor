@@ -106,7 +106,7 @@ export const EditTab = ({
                     checked={editReferences[item.key]}
                     onChange={(e) => setEditReferences({ ...editReferences, [item.key]: e.target.checked })}
                   />
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{item.icon}</span>
+                  <span className={`material-symbols-outlined ${styles.editRefToggleIcon}`}>{item.icon}</span>
                   <span>{item.label}</span>
                 </label>
               ))}
