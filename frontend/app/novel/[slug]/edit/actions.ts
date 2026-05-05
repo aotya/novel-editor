@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getRequiredSession } from '@/lib/auth-utils'
+import { tiptapDocToText } from '@/lib/tiptap-utils'
 
 // ---- Story generation types ----
 
@@ -456,29 +457,11 @@ export async function rewriteContent(
           .order('episode_number', { ascending: true });
 
         if (chapters && chapters.length > 0) {
-          data.pastContent = chapters.map((ch: { episode_number: number; title: string; content: unknown }) => {
-            let text = '';
-            if (typeof ch.content === 'string') {
-              text = ch.content;
-            } else if (ch.content && typeof ch.content === 'object') {
-              const doc = ch.content as { type?: string; content?: { type?: string; content?: { text?: string }[] }[] };
-              if (doc.type === 'doc' && doc.content) {
-                text = doc.content
-                  .map(node => {
-                    if (node.type === 'paragraph' && node.content) {
-                      return node.content.map(c => c.text || '').join('');
-                    }
-                    return '';
-                  })
-                  .join('\n');
-              }
-            }
-            return {
-              episodeNumber: ch.episode_number,
-              title: ch.title,
-              content: text,
-            };
-          });
+          data.pastContent = chapters.map((ch: { episode_number: number; title: string; content: unknown }) => ({
+            episodeNumber: ch.episode_number,
+            title: ch.title,
+            content: tiptapDocToText(ch.content),
+          }));
         }
       }
     }
